@@ -9,11 +9,16 @@ let playingAs = "france";
 
 let units = [];
 let mouseClickHandler = null;
+let mouseObj = null;
+
+let maximumFrameRate = 50;
 
 async function preload() {
   preloadFlags();
   franceData = await getCountry("france");
   germanyData = await getCountry("germany");
+  mouseObj = new Mouse();
+  mouseObj.preload();
 }
 
 function setup() {
@@ -22,11 +27,15 @@ function setup() {
 
 function draw() {
   background(155, 155, 155);
+  frameRate(maximumFrameRate);
+  noCursor();
   if (franceData === null || germanyData === null) {
     // guarantee map data is loaded
     return;
   }
   drawCountries();
+  drawResources();
+  mouseObj.draw();
   units.forEach((unit) => unit.draw());
 }
 
@@ -70,5 +79,10 @@ function mouseInBox(bx, by, bw, bh) {
 function mouseClicked() {
   if (mouseClickHandler) {
     mouseClickHandler();
+  }
+}
+function drawCursor() {
+  if (mouseClickHandler) {
+    // selecting something
   }
 }
