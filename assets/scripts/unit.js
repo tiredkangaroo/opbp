@@ -9,17 +9,12 @@ class Unit {
   }
 
   draw() {
-    const [realX, realY] = vgrid(this.x, this.y);
+    // const [width, height] =
     push();
-    image(getFlagImage(this.belongsTo), realX, realY, 30, 20);
+    fill(255);
+    text(`Level ${this.level}`, this.x - 5, this.y - 5);
+    const flagScale = Math.min(2, 1 + this.size / 10000);
+    drawFlag(this.belongsTo, this.x, this.y, flagScale);
     pop();
-  }
-}
-
-function getFlagImage(country) {
-  if (country === "france") {
-    return frenchFlag;
-  } else if (country === "germany") {
-    return germanFlag;
   }
 }

@@ -7,7 +7,7 @@ let franceData = null;
 let germanyData = null;
 let playingAs = "france";
 
-let units = [new Unit(500, 500, 1, 1000, "france")];
+let units = [new Unit(500, 500, 67, 1000, "france")];
 
 async function preload() {
   preloadFlags();
