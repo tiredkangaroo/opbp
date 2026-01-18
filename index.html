@@ -8,9 +8,105 @@
     <script src="assets/flags/flags.js"></script>
     <script src="assets/scripts/map.js"></script>
     <script src="assets/scripts/unit.js"></script>
+    <script src="assets/scripts/resources.js"></script>
     <link rel="stylesheet" href="assets/stylesheets/styles.css" />
   </head>
   <body>
     <script src="sketch.js"></script>
+    <main>
+      <!-- the deploy unit panel at the top left corner -->
+      <div id="deploy-unit-panel">
+        <h3>Deploy Unit</h3>
+        <div class="level-row">
+          <label for="deploy-unit-size-input">Size</label>
+          <input
+            type="range"
+            id="deploy-unit-size-input"
+            min="100"
+            max="10000"
+            value="10"
+            oninput="
+              document.getElementById('deploy-unit-size-value').textContent =
+                `${this.value} troops`;
+              calculateDeployUnitCost();
+            "
+          />
+          <p id="deploy-unit-size-value">100 troops</p>
+        </div>
+
+        <!-- speed is how fast a unit can move across the map -->
+        <!-- defensive units will have lower speed whereas offensive units will have higher speed -->
+        <div class="level-row">
+          <label for="deploy-unit-speed-input">Speed</label>
+          <input
+            type="range"
+            id="deploy-unit-speed-input"
+            min="10"
+            max="20"
+            value="10"
+            oninput="
+              document.getElementById('deploy-unit-speed-value').textContent =
+                `${this.value} speed`;
+              calculateDeployUnitCost();
+            "
+          />
+          <p id="deploy-unit-speed-value">10 speed</p>
+        </div>
+
+        <!-- attack is how much damage a unit can deal when attacking -->
+        <!-- defensive will be in a mid range of attack whereas offensive units will have higher attack -->
+        <div class="level-row">
+          <label for="deploy-unit-attack-input">Attack</label>
+          <input
+            type="range"
+            id="deploy-unit-attack-input"
+            min="1"
+            max="10"
+            value="1"
+            oninput="
+              document.getElementById('deploy-unit-attack-value').textContent =
+                `${this.value} attack`;
+              calculateDeployUnitCost();
+            "
+          />
+          <p id="deploy-unit-attack-value">10 attack</p>
+        </div>
+
+        <!-- stamina is how well a unit can sustain itself -->
+        <!-- units will lose stamina when engaged in battle, and this will affect their speed and attack -->
+        <!-- defensive units will have higher stamina, where as offensive units will have lower stamina -->
+        <div class="level-row">
+          <label for="deploy-unit-stamina-input">Stamina</label>
+          <input
+            type="range"
+            id="deploy-unit-stamina-input"
+            min="1"
+            max="5"
+            value="1"
+            oninput="
+              document.getElementById('deploy-unit-stamina-value').textContent =
+                `${this.value} stamina`;
+              calculateDeployUnitCost();
+            "
+          />
+          <p id="deploy-unit-stamina-value">1 stamina</p>
+        </div>
+
+        <div class="level-row">
+          <label for="deploy-unit-position-input">Position:</label>
+          <p id="deploy-unit-position-display" style="margin-right: 3px">
+            (not selected)
+          </p>
+          <button onclick="selectDeployUnitPosition()">Select Position</button>
+        </div>
+
+        <p style="text-align: center; font-weight: bold">
+          Cost: <span id="deploy-unit-cost-display">50</span>
+        </p>
+        <button id="deploy-unit-button" onclick="deployUnit()">
+          Deploy Unit
+        </button>
+      </div>
+    </main>
   </body>
 </html>

@@ -7,7 +7,8 @@ let franceData = null;
 let germanyData = null;
 let playingAs = "france";
 
-let units = [new Unit(500, 500, 67, 1000, "france")];
+let units = [];
+let mouseClickHandler = null;
 
 async function preload() {
   preloadFlags();
@@ -56,4 +57,18 @@ function realgrid(x, y) {
   const virtualX = (x / width) * vgrid_width;
   const virtualY = (y / height) * vgrid_height;
   return [virtualX, virtualY];
+}
+
+// point in box
+function pointInBox(px, py, bx, by, bw, bh) {
+  return px >= bx && px <= bx + bw && py >= by && py <= by + bh;
+}
+// mouse in box
+function mouseInBox(bx, by, bw, bh) {
+  return pointInBox(...vgrid(mouseX, mouseY), bx, by, bw, bh);
+}
+function mouseClicked() {
+  if (mouseClickHandler) {
+    mouseClickHandler();
+  }
 }
