@@ -10,6 +10,7 @@
     <script src="assets/scripts/map.js"></script>
     <script src="assets/scripts/unit.js"></script>
     <script src="assets/scripts/resources.js"></script>
+    <script src="assets/scripts/rounds.js"></script>
     <link rel="stylesheet" href="assets/stylesheets/styles.css" />
   </head>
   <body>
@@ -107,6 +108,12 @@
         <button id="deploy-unit-button" onclick="deployUnit()">
           Deploy Unit
         </button>
+      </div>
+
+      <div id="rounds-panel">
+        <h3>Rounds</h3>
+        <p>Current Round: <span id="current-round-display">0</span></p>
+        <button onclick="advanceRound()">Advance Round (play)</button>
       </div>
     </main>
   </body>

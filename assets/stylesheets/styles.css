@@ -28,6 +28,18 @@ main {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    width: 302px;
+    height: 368px;
+}
+
+#rounds-panel {
+    position: absolute;
+    top: 400px;
+    left: 5px;
+    width: 200px;
+    height: 200px;
+    background-color: #54545454;
+    padding: 4px;
 }
 
 .level-row {

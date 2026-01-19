@@ -1,6 +1,13 @@
 const MIN_COST = 50;
 const MAX_COST = 500;
 
+// {
+//     type: "move",
+//     // data for action type
+//     targetX: 100,
+//     targetY: 150,
+// }
+
 class Unit {
   constructor(x, y, level, size, speed, attack, stamina, belongsTo) {
     // x and y are in virtual grid coords
@@ -8,10 +15,12 @@ class Unit {
     this.y = y;
     this.level = level; // level 1, 2, 3
     this.size = size; // # troops
-    this.speed = speed;
+    this.speed = speed; // range 10-20
     this.attack = attack;
     this.stamina = stamina;
     this.belongsTo = belongsTo; // "france" or "germany"
+    this.proposedActions = [];
+    this.continuingActions = false;
   }
 
   draw() {
@@ -39,6 +48,69 @@ class Unit {
     }
 
     pop();
+  }
+
+  addProposedAction(action) {
+    this.proposedActions.push(action);
+  }
+
+  doProposedActions() {
+    const newActions = [];
+    for (const action of [...this.proposedActions]) {
+      // process action
+      switch (action.type) {
+        case "move":
+          this.doMoveAction(action);
+          break;
+        default:
+          console.warn("unknown action type:", action.type);
+      }
+    }
+    this.proposedActions = newActions; // set proposed actions to any remaining actions (incomplete actions to do next round)
+  }
+
+  doMoveAction(action) {
+    this.continuingActions = true;
+    const deltaX = action.targetX - this.x;
+    const deltaY = action.targetY - this.y;
+    // calculate how much the unit can do this round (based on speed)
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    const maxDistanceThisRound = this.speed * 6.7; // arbitrary multiplier for speed to distance (if speed is 10, user can move 67 distance per round). this just means that a round is 6.7 time units long
+    const scale = Math.min(1, maxDistanceThisRound / distance);
+    const finalDeltaX = deltaX * scale;
+    const finalDeltaY = deltaY * scale;
+
+    const steps = 40; // number of animation steps
+    this.moveUnitTo(steps, finalDeltaX, finalDeltaY);
+
+    // after moving, if we didn't reach the target, add another move action
+    if (scale < 1) {
+      console.log(
+        "unit did not reach target, adding new action",
+        distance,
+        maxDistanceThisRound,
+      );
+      const remainingDeltaX = deltaX - finalDeltaX;
+      const remainingDeltaY = deltaY - finalDeltaY;
+      newActions.push({
+        type: "move",
+        targetX: this.x + remainingDeltaX,
+        targetY: this.y + remainingDeltaY,
+      });
+    }
+  }
+
+  // i is a countdown of how many times the function has been called
+  moveUnitTo(i, deltaX, deltaY) {
+    if (i == 0) {
+      console.log("moved", this.x, this.y, deltaX, deltaY);
+      return;
+    }
+    this.x += deltaX / 40;
+    this.y += deltaY / 40;
+    setTimeout(() => {
+      this.moveUnitTo(i - 1, deltaX, deltaY);
+    }, 25);
   }
 }
 

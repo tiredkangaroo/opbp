@@ -6,7 +6,8 @@ function drawResources() {
   const barWidth = 300;
   const barHeight = 18;
   noStroke();
-  text(`Resources: ${resources}`, 10, vgrid_height - 50);
+  textSize(16);
+  text(`Resources: ${resources}`, ...vgrid(10, vgrid_height - 50));
   rect(...vgrid(10, vgrid_height - 40), ...vgrid(barWidth, barHeight));
   fill("#f570ff");
   rect(
