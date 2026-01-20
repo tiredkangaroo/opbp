@@ -22,6 +22,13 @@ class Unit {
     this.belongsTo = belongsTo; // "france" or "germany"
     this.proposedActions = [];
     this.continuingActions = false;
+
+    this.animStartX = 0;
+    this.animStartY = 0;
+    this.animTargetX = 0;
+    this.animTargetY = 0;
+    this.animProgress = 0; // 0 → 1
+    this.animDuration = 40; // frames
   }
 
   draw() {
@@ -58,22 +65,39 @@ class Unit {
       // draw line to target
       stroke(0, 0, 0);
       strokeWeight(4);
+
+      const movementIsTop = action.targetY < this.y; // check if target is above current position
+      const startVectorX = this.x + flagDimensions.width / 2;
+      const startVectorY = movementIsTop
+        ? this.y - 2
+        : this.y + flagDimensions.height + 2;
       drawArrow(
+        createVector(...realgrid(startVectorX, startVectorY)),
         createVector(
           ...realgrid(
-            this.x + flagDimensions.width,
-            this.y + flagDimensions.height / 2,
-          ),
-        ),
-        createVector(
-          ...realgrid(
-            action.targetX - (this.x + flagDimensions.width),
-            action.targetY - (this.y + flagDimensions.height / 2),
+            action.targetX - startVectorX,
+            action.targetY - startVectorY,
           ),
         ),
         color(0, 0, 0),
       );
       break;
+    }
+
+    if (!this.animating) return;
+
+    this.animProgress++;
+
+    const t = this.animProgress / this.animDuration;
+    const clamped = Math.min(t, 1);
+
+    this.x = lerp(this.animStartX, this.animTargetX, clamped);
+    this.y = lerp(this.animStartY, this.animTargetY, clamped);
+
+    if (clamped >= 1) {
+      this.animating = false;
+      this.x = this.animTargetX;
+      this.y = this.animTargetY;
     }
 
     pop();
@@ -101,35 +125,43 @@ class Unit {
 
   doMoveAction(action) {
     const newActions = [];
-    this.continuingActions = true;
+
     const deltaX = action.targetX - this.x;
     const deltaY = action.targetY - this.y;
-    // calculate how much the unit can do this round (based on speed)
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    const maxDistanceThisRound = this.speed * 6.7; // arbitrary multiplier for speed to distance (if speed is 10, user can move 67 distance per round). this just means that a round is 6.7 time units long
-    const scale = Math.min(1, maxDistanceThisRound / distance);
-    const finalDeltaX = deltaX * scale;
-    const finalDeltaY = deltaY * scale;
+    const distance = Math.hypot(deltaX, deltaY);
 
-    const steps = 40; // number of animation steps
-    this.moveUnitTo(steps, finalDeltaX, finalDeltaY);
+    if (distance === 0) return newActions;
 
-    // after moving, if we didn't reach the target, add another move action
-    if (scale < 1) {
-      console.log(
-        "unit did not reach target, adding new action",
-        distance,
-        maxDistanceThisRound,
-      );
-      const remainingDeltaX = deltaX - finalDeltaX;
-      const remainingDeltaY = deltaY - finalDeltaY;
+    const maxDistanceThisRound = this.speed * 6.7;
+    const travel = Math.min(distance, maxDistanceThisRound);
+
+    const ratio = travel / distance;
+
+    const moveX = deltaX * ratio;
+    const moveY = deltaY * ratio;
+
+    // FIXED: snapshot start & target
+    this.startMoveAnimation(this.x, this.y, this.x + moveX, this.y + moveY);
+
+    // If not finished, queue next round's move
+    if (travel < distance) {
       newActions.push({
         type: "move",
-        targetX: this.x + remainingDeltaX,
-        targetY: this.y + remainingDeltaY,
+        targetX: action.targetX,
+        targetY: action.targetY,
       });
     }
+
     return newActions;
+  }
+
+  startMoveAnimation(x0, y0, x1, y1) {
+    this.animating = true;
+    this.animStartX = x0;
+    this.animStartY = y0;
+    this.animTargetX = x1;
+    this.animTargetY = y1;
+    this.animProgress = 0;
   }
 
   // i is a countdown of how many times the function has been called
