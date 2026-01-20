@@ -9,6 +9,7 @@ let playingAs = "france";
 
 let units = [];
 let mouseClickHandler = null;
+
 let mouseObj = null;
 
 let maximumFrameRate = 50;
@@ -40,6 +41,8 @@ function draw() {
 }
 
 function drawCountries() {
+  stroke(0);
+  strokeWeight(1);
   if (playingAs === "france") {
     fill(0, 85, 164);
   } else {

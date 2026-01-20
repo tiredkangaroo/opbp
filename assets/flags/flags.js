@@ -8,6 +8,12 @@ function preloadFlags() {
 }
 
 function drawFlag(country, x, y, scale) {
+  let { img, width, height } = getFlagDimensions(country, scale);
+  image(img, x, y, width, height);
+}
+
+// returns {image, width, height}
+function getFlagDimensions(country, scale) {
   let img = null;
   var finalScale = scale;
   if (country === "france") {
@@ -19,5 +25,9 @@ function drawFlag(country, x, y, scale) {
     germanBaseScale = baseFlagWidth / germanFlag.width;
     finalScale *= germanBaseScale;
   }
-  image(img, x, y, img.width * finalScale, img.height * finalScale);
+  return {
+    img: img,
+    width: img.width * finalScale,
+    height: img.height * finalScale,
+  };
 }

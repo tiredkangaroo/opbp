@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title></title>
     <script src="assets/scripts/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <script src="assets/scripts/mouse.js"></script>
     <script src="assets/flags/flags.js"></script>
     <script src="assets/scripts/map.js"></script>
@@ -111,9 +112,15 @@
       </div>
 
       <div id="rounds-panel">
-        <h3>Rounds</h3>
-        <p>Current Round: <span id="current-round-display">0</span></p>
+        <h3>Round <span id="current-round-display">0</span></h3>
         <button onclick="advanceRound()">Advance Round (play)</button>
+      </div>
+
+      <div id="units-panel">
+        <h3>Your Units</h3>
+        <div id="units-list">
+          <!-- <div class="unit-item"> -->
+        </div>
       </div>
     </main>
   </body>

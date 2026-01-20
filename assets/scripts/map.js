@@ -36,3 +36,25 @@ function drawFeature(feature) {
     geom.coordinates.forEach((p) => p.forEach(drawRing));
   }
 }
+
+function unproject(x, y) {
+  // undo transformations, isotropic scaling (is ts ball) + translation
+  const sx = (x + 110) / 1.15; // le math 🧮
+  const sy = (y + 50) / 1.15;
+
+  // undo map()
+  const lon = map(sx, 0, width, -13, 24);
+  const lat = map(sy, 0, height, 56, 41);
+
+  return [lon, lat];
+}
+
+function pointInCountry(x, y, countryData) {
+  const [lon, lat] = unproject(x, y);
+  return d3.geoContains(countryData, [lon, lat]);
+}
+
+// pointInMap just checks if the given REAL (not virtual!!) x,y coords are in either country.
+function pointInMap(x, y) {
+  return pointInCountry(x, y, franceData) || pointInCountry(x, y, germanyData);
+}
