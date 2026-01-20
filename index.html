@@ -103,17 +103,26 @@
           <button onclick="selectDeployUnitPosition()">Select Position</button>
         </div>
 
-        <p style="text-align: center; font-weight: bold">
+        <p
+          style="text-align: center; font-weight: bold"
+          onload="calculateDeployUnitCost()"
+        >
           Cost: <span id="deploy-unit-cost-display">50</span>
         </p>
-        <button id="deploy-unit-button" onclick="deployUnit()">
+        <button
+          id="deploy-unit-button"
+          onclick="
+            calculateDeployUnitCost();
+            deployUnit();
+          "
+        >
           Deploy Unit
         </button>
       </div>
 
       <div id="rounds-panel">
         <h3>Round <span id="current-round-display">0</span></h3>
-        <button onclick="advanceRound()">Advance Round (play)</button>
+        <button onclick="rounds.advanceRound()">Advance Round (play)</button>
       </div>
 
       <div id="units-panel">

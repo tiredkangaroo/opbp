@@ -35,10 +35,6 @@ class Unit {
     // const [width, height] =
     push();
 
-    // level text above unit
-    fill(255);
-    text(`Level ${this.level}`, this.x - 5, this.y - 5);
-
     // draw flag representing unit
     const flagScale = Math.min(1.56, 1 + this.size / 10000);
     const flagDimensions = getFlagDimensions(this.belongsTo, flagScale);
@@ -84,6 +80,12 @@ class Unit {
       break;
     }
 
+    // level text above unit
+    fill(255);
+    textSize(14);
+    text(`Level ${this.level}`, this.x - 5, this.y - 5);
+
+    // animation portion
     if (!this.animating) return;
 
     this.animProgress++;
@@ -99,6 +101,7 @@ class Unit {
       this.x = this.animTargetX;
       this.y = this.animTargetY;
     }
+    updateUnitsListUI();
 
     pop();
   }
@@ -224,7 +227,8 @@ function updateUnitsListUI() {
   const unitsListDiv = document.getElementById("units-list");
   unitsListDiv.innerHTML = "";
 
-  units.forEach((unit, index) => {
+  const myUnits = units.filter((unit) => unit.belongsTo === playingAs);
+  myUnits.forEach((unit, index) => {
     // where is the unit?
     let currentLocation = "unknown";
     if (pointInCountry(unit.x, unit.y, franceData)) {
@@ -243,8 +247,9 @@ function updateUnitsListUI() {
     </div>`;
   });
 
-  for (let i = 0; i < units.length; i++) {
-    const u = units[i];
+  for (let i = 0; i < myUnits.length; i++) {
+    const u = myUnits[i];
+    if (u.belongsTo !== playingAs) continue;
 
     // move unit button
     document.getElementById(`move-unit-button-${i}`).onclick = () => {

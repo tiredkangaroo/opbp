@@ -7,7 +7,7 @@ let franceData = null;
 let germanyData = null;
 let playingAs = "france";
 
-let units = [];
+let units = [new Unit(829, 352, "1st German Army Unit", 67, 4100, 20, 10)];
 let mouseClickHandler = null;
 
 let mouseObj = null;
