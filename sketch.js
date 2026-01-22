@@ -36,6 +36,7 @@ function draw() {
   }
   drawCountries();
   drawResources();
+  rounds.watchRound();
   mouseObj.draw();
   units.forEach((unit) => unit.draw());
 }

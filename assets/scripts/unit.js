@@ -23,6 +23,7 @@ class Unit {
     this.proposedActions = [];
     this.continuingActions = false;
 
+    this.animation = false;
     this.animStartX = 0;
     this.animStartY = 0;
     this.animTargetX = 0;
@@ -31,12 +32,16 @@ class Unit {
     this.animDuration = 40; // frames
   }
 
+  getFlagScale() {
+    return Math.min(1.56, 1 + this.size / 10000);
+  }
+
   draw() {
     // const [width, height] =
     push();
 
     // draw flag representing unit
-    const flagScale = Math.min(1.56, 1 + this.size / 10000);
+    const flagScale = this.getFlagScale();
     const flagDimensions = getFlagDimensions(this.belongsTo, flagScale);
     drawFlag(this.belongsTo, this.x, this.y, flagScale);
 
@@ -110,13 +115,24 @@ class Unit {
     this.proposedActions.push(action);
   }
 
-  doProposedActions() {
+  handleAdvanceRound() {
+    // level up!!
+    if (this.proposedActions.length === 0) {
+      if (this.level >= 10) return; // max level reached
+      this.stamina = Math.round(Math.min(this.stamina + 0.8, 5));
+      this.attack = Math.round(Math.min(this.attack + 0.8, 10));
+      this.speed = Math.round(Math.min(this.speed + 0.8, 20));
+      this.level = Math.min(this.level + 1, 10);
+      return;
+    }
+
     const newActions = [];
     for (const action of [...this.proposedActions]) {
       // process action
       switch (action.type) {
         case "move":
           const na = this.doMoveAction(action);
+          this.levelDown(0.1);
           newActions.push(...na);
           break;
         default:
@@ -124,6 +140,12 @@ class Unit {
       }
     }
     this.proposedActions = newActions; // set proposed actions to any remaining actions (incomplete actions to do next round)
+  }
+
+  levelDown(scale) {
+    this.stamina = Math.round(Math.max(1, this.stamina - 1 * scale));
+    this.attack = Math.round(Math.max(1, this.attack - 1 * scale));
+    this.speed = Math.round(Math.max(10, this.speed - 1 * scale));
   }
 
   doMoveAction(action) {
@@ -393,4 +415,15 @@ function drawArrow(base, vec, myColor) {
   translate(vec.mag() - arrowSize, 0);
   triangle(0, arrowSize / 2, 0, -arrowSize / 2, arrowSize, 0);
   pop();
+}
+
+/**
+ * @param {Unit} myUnit
+ * @param {Unit} enemyUnit
+ * @param {void ()} cb
+ */
+function resolveCombatFrame(myUnit, enemyUnit, cb) {
+  // start counting enemy unit damage and myUnit damage
+  // calculate damage to enemy first:
+  enemyUnit;
 }

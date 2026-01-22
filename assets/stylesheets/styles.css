@@ -89,5 +89,5 @@ main {
 button:disabled {
     background-color: #888888;
     color: #444444;
-    cursor: not-allowed;
+cursor: not-allowed;
 }
