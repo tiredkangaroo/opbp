@@ -21,6 +21,7 @@ class Rounds {
       return;
     }
     this.inProgress = true;
+    updateUnitsListUI();
     for (const [index, unit] of units.entries()) {
       if (unit.belongsTo === playingAs) {
         console.log("Disabling unit controls for ", unit.name);
