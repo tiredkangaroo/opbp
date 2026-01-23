@@ -102,6 +102,8 @@ class Unit {
     this.y = lerp(this.animStartY, this.animTargetY, clamped);
 
     if (clamped >= 1) {
+      console.log("finished animation for", this.name);
+      rounds.wgDone();
       this.animating = false;
       this.x = this.animTargetX;
       this.y = this.animTargetY;
@@ -113,6 +115,7 @@ class Unit {
 
   addProposedAction(action) {
     this.proposedActions.push(action);
+    updateUnitsListUI();
   }
 
   handleAdvanceRound() {
@@ -182,6 +185,8 @@ class Unit {
 
   startMoveAnimation(x0, y0, x1, y1) {
     this.animating = true;
+    console.log("starting move animation", this.name);
+    rounds.wgAdd();
     this.animStartX = x0;
     this.animStartY = y0;
     this.animTargetX = x1;
@@ -200,6 +205,14 @@ class Unit {
     setTimeout(() => {
       this.moveUnitTo(i - 1, deltaX, deltaY);
     }, 25);
+  }
+
+  destroy() {
+    // clean up and remove from units array
+    if (this.animating) {
+      rounds.wgDone();
+    }
+    units = units.filter((u) => u.name !== this.name);
   }
 }
 
@@ -249,8 +262,9 @@ function updateUnitsListUI() {
   const unitsListDiv = document.getElementById("units-list");
   unitsListDiv.innerHTML = "";
 
-  const myUnits = units.filter((unit) => unit.belongsTo === playingAs);
-  myUnits.forEach((unit, index) => {
+  units.forEach((unit, index) => {
+    if (unit.belongsTo !== playingAs) return;
+
     // where is the unit?
     let currentLocation = "unknown";
     if (pointInCountry(unit.x, unit.y, franceData)) {
@@ -262,15 +276,26 @@ function updateUnitsListUI() {
       <strong>${unit.name}</strong><br/>
       <p><b>Location</b>: ${currentLocation}</p>
       <p><b>Size</b>: ${unit.size}, <b>Speed</b>: ${unit.speed}, <b>Attack</b>: ${unit.attack}, <b>Stamina</b>: ${unit.stamina}</p>
-      <div class="unit-actions">
+      <div>
+      ${unit.proposedActions
+        .map((action, actionIdx) => {
+          if (action.type === "move") {
+            return `<p><i>Proposed Action</i>: Move to (${action.targetX}, ${action.targetY})<button style="margin-left: 4px;" onclick="units[${index}].proposedActions.splice(${actionIdx}, 1); updateUnitsListUI();">Cancel</button></p>`;
+          } else {
+            // shouldn't ever happen unless im dumb
+            return `<p><i>Proposed Action</i>: Unknown action</p>`;
+          }
+        })
+        .join("")}
+      <div style="margin-top: 4px;">
         <button id="move-unit-button-${index}">Move</button>
         <button id="remove-unit-button-${index}">Remove</button>
       </div>
     </div>`;
   });
 
-  for (let i = 0; i < myUnits.length; i++) {
-    const u = myUnits[i];
+  for (let i = 0; i < units.length; i++) {
+    const u = units[i];
     if (u.belongsTo !== playingAs) continue;
 
     // move unit button
@@ -389,8 +414,14 @@ function selectDeployUnitPosition() {
     document.getElementById("deploy-unit-position-display").textContent =
       "(click on map)";
     mouseClickHandler = () => {
-      if (!pointInMap(mouseX, mouseY)) {
-        alert("Please select a position on the map!");
+      if (
+        !pointInCountry(
+          mouseX,
+          mouseY,
+          playingAs == "france" ? franceData : germanyData,
+        )
+      ) {
+        alert(`Please select a position within ${playingAs}!`);
         return;
       }
       const mousePosition = vgrid(mouseX, mouseY);
@@ -415,15 +446,4 @@ function drawArrow(base, vec, myColor) {
   translate(vec.mag() - arrowSize, 0);
   triangle(0, arrowSize / 2, 0, -arrowSize / 2, arrowSize, 0);
   pop();
-}
-
-/**
- * @param {Unit} myUnit
- * @param {Unit} enemyUnit
- * @param {void ()} cb
- */
-function resolveCombatFrame(myUnit, enemyUnit, cb) {
-  // start counting enemy unit damage and myUnit damage
-  // calculate damage to enemy first:
-  enemyUnit;
 }

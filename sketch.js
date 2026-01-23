@@ -7,7 +7,9 @@ let franceData = null;
 let germanyData = null;
 let playingAs = "france";
 
-let units = [new Unit(829, 352, "1st German Army Unit", 67, 4100, 20, 10)];
+let units = [
+  new Unit(829, 352, "1st German Army Unit", 67, 4100, 20, 10, 5, "germany"),
+];
 let mouseClickHandler = null;
 
 let mouseObj = null;
@@ -36,9 +38,14 @@ function draw() {
   }
   drawCountries();
   drawResources();
+  units.forEach((unit) => unit.draw());
   rounds.watchRound();
   mouseObj.draw();
-  units.forEach((unit) => unit.draw());
+  text(
+    rounds.inProgress ? "Round in progress" : "No round in progress",
+    1200,
+    20,
+  );
 }
 
 function drawCountries() {
