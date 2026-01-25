@@ -1,6 +1,6 @@
 const MIN_COST = 50;
 const MAX_COST = 500;
-let unitsEverDeployed = 0;
+let unitsEverDeployed = 3; // three because starts with 3 units
 // {
 //     type: "move",
 //     // data for action type
@@ -67,22 +67,24 @@ class Unit {
       stroke(0, 0, 0);
       strokeWeight(4);
 
-      const movementIsTop = action.targetY < this.y; // check if target is above current position
-      const startVectorX = this.x + flagDimensions.width / 2;
-      const startVectorY = movementIsTop
-        ? this.y - 2
-        : this.y + flagDimensions.height + 2;
-      drawArrow(
-        createVector(...realgrid(startVectorX, startVectorY)),
-        createVector(
-          ...realgrid(
-            action.targetX - startVectorX,
-            action.targetY - startVectorY,
+      if (this.belongsTo === playingAs) {
+        const movementIsTop = action.targetY < this.y; // check if target is above current position
+        const startVectorX = this.x + flagDimensions.width / 2;
+        const startVectorY = movementIsTop
+          ? this.y - 2
+          : this.y + flagDimensions.height + 2;
+        drawArrow(
+          createVector(...realgrid(startVectorX, startVectorY)),
+          createVector(
+            ...realgrid(
+              action.targetX - startVectorX,
+              action.targetY - startVectorY,
+            ),
           ),
-        ),
-        color(0, 0, 0),
-      );
-      break;
+          color(0, 0, 0),
+        );
+        break;
+      }
     }
 
     // level text above unit

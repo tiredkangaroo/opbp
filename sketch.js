@@ -28,6 +28,7 @@ async function preload() {
   germanyData = await getCountry("germany");
   mouseObj = new Mouse();
   mouseObj.preload();
+  updateUnitsListUI();
 }
 
 function setup() {

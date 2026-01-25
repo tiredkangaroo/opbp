@@ -58,3 +58,32 @@ function pointInCountry(x, y, countryData) {
 function pointInMap(x, y) {
   return pointInCountry(x, y, franceData) || pointInCountry(x, y, germanyData);
 }
+
+function randomPointInFeature(feature, maxTries = 10000) {
+  // Get geographic bounds
+  const [[minLon, minLat], [maxLon, maxLat]] = d3.geoBounds(feature);
+
+  // Project all four corners and find screen-space bounds
+  const corners = [
+    project(minLon, minLat),
+    project(maxLon, minLat),
+    project(minLon, maxLat),
+    project(maxLon, maxLat),
+  ].map(([x, y]) => [x * 1.15 - 110, y * 1.15 - 50]); // apply transformations
+
+  const screenMinX = Math.min(...corners.map((c) => c[0]));
+  const screenMaxX = Math.max(...corners.map((c) => c[0]));
+  const screenMinY = Math.min(...corners.map((c) => c[1]));
+  const screenMaxY = Math.max(...corners.map((c) => c[1]));
+
+  // Generate random points in screen space
+  for (let i = 0; i < maxTries; i++) {
+    const x = screenMinX + Math.random() * (screenMaxX - screenMinX);
+    const y = screenMinY + Math.random() * (screenMaxY - screenMinY);
+
+    if (pointInCountry(x, y, feature)) {
+      return [x, y];
+    }
+  }
+  throw new Error("failed to find point inside feature");
+}

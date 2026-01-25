@@ -22,6 +22,7 @@ class Rounds {
     }
     this.inProgress = true;
     updateUnitsListUI();
+    opponent.proposeOpposingActions();
     for (const [index, unit] of units.entries()) {
       if (unit.belongsTo === playingAs) {
         console.log("Disabling unit controls for ", unit.name);
@@ -169,15 +170,35 @@ class Conflict {
         (1 + this.enemyUnit.stamina / 10) +
       Math.random() * this.enemyUnit.size;
 
-    console.log(
-      this.enemyUnit.size,
-      this.myUnit.size,
-      myAttackPower,
-      enemyAttackPower,
+    const startingEnemyUnitSize = this.enemyUnit.size;
+    this.enemyUnit.size = Math.round(
+      this.enemyUnit.size - (myAttackPower || 1) / 10,
+    ); // the 10 is arbitray
+    const startingMyUnitSize = this.myUnit.size;
+    this.myUnit.size = Math.round(
+      this.myUnit.size - (enemyAttackPower || 1) / 10,
     );
-    this.enemyUnit.size = Math.round(this.enemyUnit.size - myAttackPower / 10); // the 10 is arbitray
-    this.myUnit.size = Math.round(this.myUnit.size - enemyAttackPower / 10);
-    console.log(this.enemyUnit.size, this.myUnit.size);
+
+    const myLoss = startingMyUnitSize - this.myUnit.size;
+    const enemyLoss = startingEnemyUnitSize - this.enemyUnit.size;
+    if (playingAs === "france") {
+      french_casualties += myLoss;
+      german_casualties += enemyLoss;
+    } else {
+      german_casualties += myLoss;
+      french_casualties += enemyLoss;
+    }
+
+    // include stamina hits (as a function of % of size lost)
+    this.myUnit.stamina = Math.round(
+      Math.max(
+        // stamina ranges 1-5
+        1,
+        this.myUnit.stamina - (myLoss / startingMyUnitSize) * 5,
+      ),
+    );
+
+    // include attack and speed hits (as a function of current stamina and size lost)
 
     // check if any unit has been defeated
     if (this.myUnit.size <= 10) {
@@ -211,4 +232,10 @@ function areTwoUnitsInContact(unit, otherUnit) {
     unit.y + h1 < otherUnit.y || // unit is above other
     unit.y > otherUnit.y + h2 // unit is below other
   );
+}
+
+function round(num, precision) {
+  if (!precision) precision = 0;
+  var pow = Math.pow(10, precision);
+  return Math.round(num * pow) / pow;
 }
