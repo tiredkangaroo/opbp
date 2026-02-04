@@ -21,7 +21,7 @@ class Rounds {
       return;
     }
 
-    const roundCost = calculateRoundCost();
+    const roundCost = calculateRoundCost(playingAs);
     displayRoundCost(); // should've already been displayed but doesn't hurt
     if (roundCost > resources) {
       alert(
@@ -30,6 +30,14 @@ class Rounds {
       return;
     }
     addResources(-roundCost); // deduct round cost
+    console.log(
+      "opponent",
+      "resources",
+      opponent.resources,
+      "round cost",
+      calculateRoundCost(opponent.playingas),
+    );
+    opponent.addResources(-calculateRoundCost(opponent.playingas));
 
     this.inProgress = true;
     updateUnitsListUI();
@@ -264,10 +272,10 @@ function round(num, precision) {
   return Math.round(num * pow) / pow;
 }
 
-function calculateRoundCost() {
+function calculateRoundCost(country) {
   let totalCost = 0;
 
-  for (const u of units.filter((u) => u.belongsTo === playingAs)) {
+  for (const u of units.filter((u) => u.belongsTo === country)) {
     // normalize
     const sizeScale = Math.sqrt(u.size / 100);
 
@@ -296,7 +304,7 @@ function calculateUpkeepCostForUnits(units) {
 }
 
 function displayRoundCost() {
-  const roundCost = calculateRoundCost();
+  const roundCost = calculateRoundCost(playingAs);
   document.getElementById("round-cost-display").innerText = roundCost;
   document.getElementById("upkeep-cost-display").innerText =
     calculateUpkeepCostForUnits(

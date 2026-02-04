@@ -62,19 +62,19 @@ class Opponent {
           if (this.resources <= MIN_COST) {
             break; // can't afford shi
           }
-          // between half and all resources
+          // between a quarter and a third
           const size =
             Math.floor(
-              ((this.resources / MAX_COST) * 10000) / randomInt(1, 2),
+              ((this.resources / MAX_COST) * 10000) / randomInt(3, 4),
             ) || 100;
           const speed =
-            Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)) ||
+            Math.floor(((this.resources / MAX_COST) * 20) / randomInt(3, 4)) ||
             10;
           const attack =
-            Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)) ||
+            Math.floor(((this.resources / MAX_COST) * 10) / randomInt(3, 4)) ||
             1;
           const stamina =
-            Math.floor(((this.resources / MAX_COST) * 5) / randomInt(1, 2)) ||
+            Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)) ||
             1;
           const [x, y] = randomPointInFeature(
             this.playingas === "france" ? franceData : germanyData,
@@ -164,6 +164,12 @@ class Opponent {
       }
       i++;
     }
+  }
+  addResources(amount) {
+    this.resources = Math.max(
+      Math.min(Math.round(this.resources + amount), max_resources),
+      0,
+    );
   }
 }
 
