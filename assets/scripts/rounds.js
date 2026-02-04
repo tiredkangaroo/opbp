@@ -113,6 +113,14 @@ class Rounds {
             const newConflict = new Conflict(unit, otherUnit);
             this.wgAdd();
             this.conflicts.push(newConflict);
+
+            // remove any proposed movements for these units this round
+            unit.proposedActions = unit.proposedActions.filter(
+              (action) => action.type !== "move",
+            );
+            otherUnit.proposedActions = otherUnit.proposedActions.filter(
+              (action) => action.type !== "move",
+            );
           }
         }
       }
