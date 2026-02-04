@@ -37,9 +37,20 @@ main {
     top: 400px;
     left: 5px;
     width: 200px;
-    height: 100px;
+    height: 135px;
     background-color: #54545454;
     padding: 4px;
+}
+#round-cost-panel {
+    margin-bottom: 12px;
+}
+#round-cost-panel p, #round-cost-panel ul{
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 0;
+}
+#round-cost-panel ul {
+    margin-left: 1rem;
 }
 
 .level-row {

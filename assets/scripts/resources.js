@@ -49,5 +49,8 @@ function updateResourcesForNewRound(roundNum) {
 }
 
 function addResources(amount) {
-  resources = Math.min(Math.round(resources + amount), max_resources);
+  resources = Math.max(
+    Math.min(Math.round(resources + amount), max_resources),
+    0,
+  );
 }

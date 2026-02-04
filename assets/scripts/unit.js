@@ -119,6 +119,7 @@ class Unit {
   addProposedAction(action) {
     this.proposedActions.push(action);
     updateUnitsListUI();
+    displayRoundCost();
   }
 
   handleAdvanceRound() {
@@ -210,6 +211,19 @@ class Unit {
     }, 25);
   }
 
+  getProposedMovementDistanceThisRound() {
+    // it's maximum: speed * 6.7, but it could be less if the unit is moving less far
+    let totalProposedMovement = 0;
+    for (const action of this.proposedActions) {
+      if (action.type !== "move") continue;
+      const deltaX = action.targetX - this.x;
+      const deltaY = action.targetY - this.y;
+      const distance = Math.hypot(deltaX, deltaY);
+      totalProposedMovement += distance; // cumulative distance (fancy vocab)
+    }
+    return Math.min(totalProposedMovement, this.speed * 6.7);
+  }
+
   destroy() {
     // clean up and remove from units array
     if (this.animating) {
@@ -238,6 +252,20 @@ function deployUnit() {
     alert("Not enough resources to deploy unit!");
     return;
   }
+  // calculate upkeep cost with new unit (btw i hate u prettier)
+  if (
+    cost +
+      calculateUpkeepCostForUnits([
+        ...units.filter((u) => u.belongsTo === playingAs),
+        new Unit(0, 0, "", 1, size, speed, attack, stamina, playingAs),
+      ]) >
+    resources
+  ) {
+    alert(
+      "You cannot afford the upkeep cost of this unit along with your existing units!",
+    );
+    return;
+  }
   resources -= cost;
 
   units.push(
@@ -258,6 +286,7 @@ function deployUnit() {
 
   // update units list in UI
   updateUnitsListUI();
+  displayRoundCost();
 }
 
 function updateUnitsListUI() {
@@ -294,7 +323,7 @@ function updateUnitsListUI() {
       ${unit.proposedActions
         .map((action, actionIdx) => {
           if (action.type === "move") {
-            return `<p><i>Proposed Action</i>: Move to (${action.targetX}, ${action.targetY})<button style="margin-left: 4px;" onclick="units[${index}].proposedActions.splice(${actionIdx}, 1); updateUnitsListUI();">Cancel</button></p>`;
+            return `<p><i>Proposed Action</i>: Move to (${action.targetX}, ${action.targetY})<button style="margin-left: 4px;" onclick="units[${index}].proposedActions.splice(${actionIdx}, 1); updateUnitsListUI(); displayRoundCost();">Cancel</button></p>`;
           } else {
             // shouldn't ever happen unless im dumb
             return `<p><i>Proposed Action</i>: Unknown action</p>`;
@@ -356,6 +385,7 @@ function updateUnitsListUI() {
 
       // update UI
       updateUnitsListUI();
+      displayRoundCost();
     };
 
     const mergeButton = document.getElementById(`merge-unit-button-${i}`);
@@ -398,6 +428,7 @@ function updateUnitsListUI() {
         u.stamina = Math.round(totalStamina / unitsMerged);
 
         updateUnitsListUI();
+        displayRoundCost();
       };
     }
 
@@ -426,6 +457,7 @@ function updateUnitsListUI() {
       units.push(otherUnit);
       unitsEverDeployed += 1;
       updateUnitsListUI();
+      displayRoundCost();
     };
   }
 }

@@ -20,6 +20,17 @@ class Rounds {
       console.log("Cannot advance round, round already in progress.");
       return;
     }
+
+    const roundCost = calculateRoundCost();
+    displayRoundCost(); // should've already been displayed but doesn't hurt
+    if (roundCost > resources) {
+      alert(
+        "Not enough resources to advance round! (Hint: move less and/or smaller units, or remove some units)",
+      );
+      return;
+    }
+    addResources(-roundCost); // deduct round cost
+
     this.inProgress = true;
     updateUnitsListUI();
     opponent.proposeOpposingActions();
@@ -39,7 +50,6 @@ class Rounds {
     this.roundNumber += 1;
     document.getElementById("current-round-display").innerText =
       this.roundNumber;
-    updateResourcesForNewRound(this.roundNumber);
     this.watchRound();
     updateUnitsListUI();
   }
@@ -111,6 +121,7 @@ class Rounds {
     if (this.canEndRound()) {
       console.log("Round can end now.");
       this.inProgress = false;
+      updateResourcesForNewRound(this.roundNumber);
       return;
     }
 
@@ -243,4 +254,44 @@ function round(num, precision) {
   if (!precision) precision = 0;
   var pow = Math.pow(10, precision);
   return Math.round(num * pow) / pow;
+}
+
+function calculateRoundCost() {
+  let totalCost = 0;
+
+  for (const u of units.filter((u) => u.belongsTo === playingAs)) {
+    // normalize
+    const sizeScale = Math.sqrt(u.size / 100);
+
+    // heavier exponential so moving big armies hurts
+    const unitMovement = u.getProposedMovementDistanceThisRound();
+    const movementFactor = (unitMovement || 0) / 100;
+
+    const movementCost =
+      Math.pow(sizeScale, 1.8) * Math.pow(movementFactor, 2.2) * 1.4;
+
+    totalCost += calculateUpkeepCostForUnits([u]) + movementCost;
+  }
+
+  // round for cleaner resource numbers
+  return Math.round(totalCost);
+}
+
+function calculateUpkeepCostForUnits(units) {
+  let totalUpkeep = 0;
+  for (const u of units) {
+    const sizeScale = Math.sqrt(u.size / 100);
+    const upkeepCost = Math.pow(sizeScale, 1.41);
+    totalUpkeep += upkeepCost;
+  }
+  return totalUpkeep;
+}
+
+function displayRoundCost() {
+  const roundCost = calculateRoundCost();
+  document.getElementById("round-cost-display").innerText = roundCost;
+  document.getElementById("upkeep-cost-display").innerText =
+    calculateUpkeepCostForUnits(
+      units.filter((u) => u.belongsTo === playingAs),
+    ).toFixed(0);
 }
