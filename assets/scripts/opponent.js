@@ -19,7 +19,7 @@ class Opponent {
     // right now, this function does not gaf about difficulty or what's actually happening in the game
     // it just makes random moves
     for (let i = 0; i < 3; ) {
-      switch (randomInt(1, 4)) {
+      switch (randomInt(0, 5)) {
         case 1:
           console.log("oppoinent moving unit into own territory");
           // move a random unit into our territory
@@ -104,8 +104,62 @@ class Opponent {
           this.unitsEverCreated++;
           break;
         case 4:
-          console.log("opponent skips round");
-          // do nothing
+          console.log(
+            "opponent attempting to merge the first two units it can",
+          );
+          // find two units close to each other and merge them
+          let merged = false;
+          for (const u1 of this.myUnits()) {
+            for (const u2 of this.myUnits()) {
+              if (u1.name != u2.name && areTwoUnitsInContact(u1, u2)) {
+                console.log("merging units", u1.name, u2.name);
+                // merge u2 into u1 and pick the best stats
+                const i = units.indexOf(u1);
+                u1.size += u2.size;
+                u1.speed = Math.max(u1.speed, u2.speed);
+                u1.attack = Math.max(u1.attack, u2.attack);
+                u1.stamina = Math.max(u1.stamina, u2.stamina);
+                units[i] = u1;
+                // remove u2 from units
+                units = units.filter((unit) => unit.name !== u2.name);
+                updateUnitsListUI(); // must update unit lists ui bc indexes change in the units panel
+                merged = true;
+                break;
+              }
+              if (merged) {
+                break;
+              }
+            }
+          }
+          break;
+        case 5:
+          console.log("opponent attempting to split a unit");
+          // split a random unit bigger than 2500 (2500 is arbitrary)
+          const splittableUnits = this.myUnits().filter((u) => u.size >= 2500);
+          if (splittableUnits.length === 0) {
+            console.log("no splittable units found");
+            break;
+          }
+          const unitToSplit =
+            splittableUnits[randomInt(0, splittableUnits.length - 1)];
+          const splitMultiplier = 0.4 + Math.random() * 0.2; // between 40% and 60%, i should make it like this in the other one instead of using max followed by min
+          const splitSize = Math.round(unitToSplit.size * splitMultiplier);
+          unitToSplit.size = unitToSplit.size - splitSize;
+          const splitUnit = new Unit(
+            unitToSplit.x + randomInt(-20, 20),
+            unitToSplit.y + randomInt(-20, 20),
+            getUnitName(this.unitsEverCreated, this.playingas),
+            unitToSplit.level,
+            splitSize,
+            unitToSplit.speed,
+            unitToSplit.attack,
+            unitToSplit.stamina,
+            this.playingas,
+          );
+          units.push(splitUnit);
+          this.unitsEverCreated++;
+          console.log("split unit into:", splitUnit);
+          updateUnitsListUI();
           break;
       }
       i++;

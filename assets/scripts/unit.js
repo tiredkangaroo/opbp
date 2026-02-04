@@ -33,7 +33,7 @@ class Unit {
   }
 
   getFlagScale() {
-    return Math.min(1.56, 1 + this.size / 10000);
+    return Math.min(2.2, 0.0067 * Math.sqrt(this.size) + 0.8);
   }
 
   draw() {
@@ -90,7 +90,8 @@ class Unit {
     // level text above unit
     fill(255);
     textSize(14);
-    text(`Level ${this.level}`, this.x - 5, this.y - 5);
+    const nameSplit = this.name.split(" ");
+    text(`${nameSplit[0]} Unit`, this.x - 5, this.y - 5);
 
     // animation portion
     if (!this.animating) return;
@@ -274,6 +275,17 @@ function updateUnitsListUI() {
     } else if (pointInCountry(unit.x, unit.y, germanyData)) {
       currentLocation = "Germany";
     }
+
+    // our units that are in contact with other of our own units
+    var myUnitsInContact = [];
+    for (const otherUnit of units) {
+      if (otherUnit === unit) continue;
+      if (otherUnit.belongsTo !== playingAs) continue;
+      if (areTwoUnitsInContact(unit, otherUnit)) {
+        myUnitsInContact.push(otherUnit.name);
+      }
+    }
+
     unitsListDiv.innerHTML += `<div class="unit-item">
       <strong>${unit.name}</strong><br/>
       <p><b>Location</b>: ${currentLocation}</p>
@@ -292,6 +304,8 @@ function updateUnitsListUI() {
       <div style="margin-top: 4px;">
         <button id="move-unit-button-${index}">Move</button>
         <button id="remove-unit-button-${index}">Remove</button>
+        ${myUnitsInContact.length > 0 ? `<button id="merge-unit-button-${index}">Merge with Nearby Units</button>` : ""}
+        <button id="split-unit-button-${index}">Split unit</button>
       </div>
     </div>`;
   });
@@ -341,6 +355,76 @@ function updateUnitsListUI() {
       addResources(getUnitDeployCost(u.size, u.speed, u.attack, u.stamina) / 3); // refund 1/3rd of deploy cost (using units in battle will also wear down speed, attack, stamina and size so you'll get even less back)
 
       // update UI
+      updateUnitsListUI();
+    };
+
+    const mergeButton = document.getElementById(`merge-unit-button-${i}`);
+    if (mergeButton) {
+      mergeButton.onclick = () => {
+        // merge with nearby units, takes average of stats and sums size
+        let totalSize = u.size;
+        let totalSpeed = u.speed;
+        let totalAttack = u.attack;
+        let totalStamina = u.stamina;
+        let unitsMerged = 1;
+
+        for (const otherUnit of [...units]) {
+          if (otherUnit === u) continue;
+          if (otherUnit.belongsTo !== playingAs) continue;
+          if (areTwoUnitsInContact(u, otherUnit)) {
+            console.log(
+              "Merging",
+              otherUnit.name,
+              "into",
+              u.name,
+              totalAttack,
+              otherUnit.attack,
+            );
+            totalSize += otherUnit.size;
+            totalSpeed += otherUnit.speed;
+            totalAttack += otherUnit.attack;
+            totalStamina += otherUnit.stamina;
+            unitsMerged += 1;
+
+            // remove other unit
+            units = units.filter((unit) => unit !== otherUnit);
+          }
+        }
+
+        // update stats
+        u.size = totalSize;
+        u.speed = Math.round(totalSpeed / unitsMerged);
+        u.attack = Math.round(totalAttack / unitsMerged);
+        u.stamina = Math.round(totalStamina / unitsMerged);
+
+        updateUnitsListUI();
+      };
+    }
+
+    const splitButton = document.getElementById(`split-unit-button-${i}`);
+    splitButton.onclick = () => {
+      if (u.size < 200) {
+        alert("Unit size too small to split!");
+        return;
+      }
+      const otherMultiplier = 0.4 + Math.random() * 0.2; // between 40% and 60%
+      const otherSize = Math.round(u.size * otherMultiplier);
+      const thisSize = u.size - otherSize;
+      u.size = thisSize;
+
+      const otherUnit = new Unit(
+        u.x + Math.random() * 50,
+        u.y + Math.random() * 50,
+        getUnitName(unitsEverDeployed, playingAs),
+        u.level,
+        otherSize,
+        u.speed,
+        u.attack,
+        u.stamina,
+        u.belongsTo,
+      );
+      units.push(otherUnit);
+      unitsEverDeployed += 1;
       updateUnitsListUI();
     };
   }

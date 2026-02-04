@@ -25,7 +25,12 @@ class Rounds {
     opponent.proposeOpposingActions();
     for (const [index, unit] of units.entries()) {
       if (unit.belongsTo === playingAs) {
-        console.log("Disabling unit controls for ", unit.name);
+        console.log(
+          "Disabling unit controls for ",
+          unit.name,
+          " at index ",
+          index,
+        );
         document.getElementById("move-unit-button-" + index).disabled = true;
         document.getElementById("remove-unit-button-" + index).disabled = true;
       }

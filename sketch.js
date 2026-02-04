@@ -11,6 +11,7 @@ let units = [
   new Unit(829, 352, "1st German Army Unit", 4, 4100, 20, 10, 5, "germany"),
   new Unit(759, 300, "2nd German Army Unit", 8, 4000, 18, 12, 5, "germany"),
   new Unit(875, 288, "3rd German Army Unit", 8, 10000, 10, 20, 5, "germany"),
+  // new Unit(850, 300, "Reserve German Unit", 3, 3000, 15, 15, 5, "germany"), // used for testing merges
   new Unit(828, 416, "4th German Army Unit", 6, 5300, 19, 11, 5, "germany"),
   new Unit(725, 420, "1st French Army Unit", 5, 6500, 15, 15, 5, "france"),
   new Unit(685, 357, "2nd French Army Unit", 7, 6000, 17, 13, 5, "france"),
