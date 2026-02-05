@@ -115,6 +115,7 @@ class Unit {
       this.y = this.animTargetY;
     }
     updateUnitsListUI();
+    displayRoundCost(); // moved to different location = different upkeep costs
 
     pop();
   }
@@ -584,6 +585,7 @@ function getOccupationPolygonForUnit(unit) {
 
   let points = []; // array of [x, y] points
   const max_radius = unit.speed * 6.7; // max movement in a round
+  const min_radius = 10; // minimum occupation radius
   const enemies = units.filter((u) => u.belongsTo !== unit.belongsTo);
 
   for (let deg = 0; deg < 360; deg += 90) {
@@ -624,6 +626,9 @@ function getOccupationPolygonForUnit(unit) {
       if (hitDistance !== null && hitDistance < bestDistance) {
         bestDistance = hitDistance;
       }
+    }
+    if (bestDistance < min_radius) {
+      continue; // skip this point, too close to enemy on this ray
     }
 
     let px = unit.x + dirX * bestDistance;

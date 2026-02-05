@@ -306,8 +306,12 @@ function calculateRoundCost(country) {
 function calculateUpkeepCostForUnits(units) {
   let totalUpkeep = 0;
   for (const u of units) {
+    const currentLocation = inWhatCountry(u.x, u.y);
     const sizeScale = Math.sqrt(u.size / 100);
-    const upkeepCost = Math.pow(sizeScale, 1.41);
+    const upkeepCost = Math.pow(
+      sizeScale,
+      currentLocation === u.belongsTo ? 1.15 : 1.6741,
+    ); // higher cost if in enemy territory
     totalUpkeep += upkeepCost;
   }
   return totalUpkeep;

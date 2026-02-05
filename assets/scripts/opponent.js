@@ -19,13 +19,34 @@ class Opponent {
     // right now, this function does not gaf about difficulty or what's actually happening in the game
     // it just makes random moves
     for (let i = 0; i < 3; ) {
-      switch (randomInt(0, 7)) {
+      switch (randomInt(1, 7)) {
         case 1:
           console.log("oppoinent moving unit into own territory");
+
           // move a random unit into our territory
-          const p = randomPointInFeature(
-            this.playingas === "france" ? franceData : germanyData,
-          );
+          let p = null;
+          for (const unit in units) {
+            // player unit in opponent territory
+            console.log(
+              unit,
+              "is in",
+              inWhatCountry(unit.x, unit.y),
+              this.playingas,
+            );
+            if (
+              unit.belongsTo === this.playingas &&
+              inWhatCountry(unit.x, unit.y) === this.playingas
+            ) {
+              p = [unit.x, unit.y];
+              break;
+            }
+          }
+          if (p === null) {
+            p = randomPointInFeature(
+              this.playingas === "france" ? franceData : germanyData,
+            );
+          }
+
           const myUnits = this.myUnitsNotMoving();
           if (myUnits.length === 0) {
             break; // no units to move
@@ -37,6 +58,7 @@ class Opponent {
             targetX: p[0],
             targetY: p[1],
           });
+
           break;
         case 2:
           console.log("opponent moving unit around in player territory");

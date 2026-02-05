@@ -59,6 +59,16 @@ function pointInMap(x, y) {
   return pointInCountry(x, y, franceData) || pointInCountry(x, y, germanyData);
 }
 
+function inWhatCountry(x, y) {
+  if (pointInCountry(x, y, franceData)) {
+    return "france";
+  } else if (pointInCountry(x, y, germanyData)) {
+    return "germany";
+  } else {
+    return null;
+  }
+}
+
 function randomPointInFeature(feature, maxTries = 10000) {
   // Get geographic bounds
   const [[minLon, minLat], [maxLon, maxLat]] = d3.geoBounds(feature);
