@@ -30,6 +30,9 @@ class Unit {
     this.animTargetY = 0;
     this.animProgress = 0; // 0 → 1
     this.animDuration = 40; // frames
+
+    this.cachedOccupationPolygon = null;
+    this.cachedOccupationPolygonDirty = true; // whether the cache needs updating
   }
 
   getFlagScale() {
@@ -299,10 +302,13 @@ function updateUnitsListUI() {
 
     // where is the unit?
     let currentLocation = "unknown";
+    let isInEnemyTerritory = false;
     if (pointInCountry(unit.x, unit.y, franceData)) {
       currentLocation = "France";
+      isInEnemyTerritory = playingAs === "germany";
     } else if (pointInCountry(unit.x, unit.y, germanyData)) {
       currentLocation = "Germany";
+      isInEnemyTerritory = playingAs === "france";
     }
 
     // our units that are in contact with other of our own units
@@ -332,7 +338,7 @@ function updateUnitsListUI() {
         .join("")}
       <div style="margin-top: 4px;">
         <button id="move-unit-button-${index}">Move</button>
-        <button id="remove-unit-button-${index}">Remove</button>
+        ${!isInEnemyTerritory ? `<button id="remove-unit-button-${index}">Remove</button>` : ""}
         ${myUnitsInContact.length > 0 ? `<button id="merge-unit-button-${index}">Merge with Nearby Units</button>` : ""}
         <button id="split-unit-button-${index}">Split unit</button>
       </div>
@@ -377,16 +383,20 @@ function updateUnitsListUI() {
     };
 
     // remove unit button
-    document.getElementById(`remove-unit-button-${i}`).onclick = () => {
-      // remove unit from units array
-      units.splice(i, 1);
-      // return some resources
-      addResources(getUnitDeployCost(u.size, u.speed, u.attack, u.stamina) / 3); // refund 1/3rd of deploy cost (using units in battle will also wear down speed, attack, stamina and size so you'll get even less back)
-
-      // update UI
-      updateUnitsListUI();
-      displayRoundCost();
-    };
+    const removeButton = document.getElementById(`remove-unit-button-${i}`);
+    if (removeButton) {
+      removeButton.onclick = () => {
+        // remove unit from units array
+        units.splice(i, 1);
+        // return some resources
+        addResources(
+          getUnitDeployCost(u.size, u.speed, u.attack, u.stamina) / 3,
+        ); // refund 1/3rd of deploy cost (using units in battle will also wear down speed, attack, stamina and size so you'll get even less back)
+        // update UI
+        updateUnitsListUI();
+        displayRoundCost();
+      };
+    }
 
     const mergeButton = document.getElementById(`merge-unit-button-${i}`);
     if (mergeButton) {
@@ -564,4 +574,99 @@ function drawArrow(base, vec, myColor) {
   translate(vec.mag() - arrowSize, 0);
   triangle(0, arrowSize / 2, 0, -arrowSize / 2, arrowSize, 0);
   pop();
+}
+
+function getOccupationPolygonForUnit(unit) {
+  if (unit.cachedOccupationPolygonDirty && unit.cachedOccupationPolygon) {
+    return unit.cachedOccupationPolygon;
+  }
+
+  let points = []; // array of [x, y] points
+  const max_radius = unit.speed * 6.7; // max movement in a round
+
+  for (let deg = 0; deg < 360; deg += 10) {
+    // step every 10 degrees
+    // we need to find the farthest point in this direction that is both on the map
+    // and is the farthest we can go without touching another unit (of different country)
+
+    const rad = (deg * Math.PI) / 180;
+
+    // guys ap physics is paying off
+    // vertical component is cos(deg), horizontal component is sin(deg)
+
+    for (const otherUnit of units) {
+      if (otherUnit.belongsTo === unit.belongsTo) continue; // skip own units (including self)
+
+      const dx = otherUnit.x - unit.x;
+      const dy = otherUnit.y - unit.y;
+
+      if (Math.hypot(dx, dy) > max_radius) {
+        // too far to interfere (max distance)
+        points.push([
+          unit.x + max_radius * Math.cos(rad),
+          unit.y + max_radius * Math.sin(rad),
+        ]);
+        continue;
+      }
+
+      let foundPoint = false;
+      let farthestValidPoint = null;
+      for (let r = max_radius; r >= 0; r -= 1) {
+        const testX = unit.x + r * Math.cos(rad);
+        const testY = unit.y + r * Math.sin(rad);
+
+        if (!pointInMap(testX, testY)) {
+          // off map
+          continue;
+        }
+        if (pointInUnitBox(testX, testY, otherUnit)) {
+          // touching other unit
+          continue;
+        }
+
+        // found the farthest point in this direction that is valid
+        farthestValidPoint = [testX, testY];
+        foundPoint = true;
+        break;
+      }
+      if (foundPoint) {
+        points.push(farthestValidPoint);
+      }
+    }
+  }
+  unit.cachedOccupationPolygon = points;
+  unit.cachedOccupationPolygonDirty = false;
+  return points;
+}
+
+// draws occupatied areas by units
+function drawOccupation() {
+  for (const unit of units) {
+    const occupationPolygon = getOccupationPolygonForUnit(unit);
+    fill(
+      unit.belongsTo === "france" ? "rgba(0,85,164,0.4)" : "rgba(221,0,0,0.4)",
+    );
+    stroke(
+      unit.belongsTo === "france" ? "rgba(0,85,164,0.4)" : "rgba(221,0,0,0.4)",
+    );
+    strokeWeight(2);
+    beginShape();
+    for (const point of occupationPolygon) {
+      vertex(point[0], point[1]);
+    }
+    endShape(CLOSE);
+  }
+}
+
+function pointInUnitBox(x, y, unit) {
+  const flagScale = unit.getFlagScale();
+  const flagDimensions = getFlagDimensions(unit.belongsTo, flagScale);
+  return pointInBox(
+    x,
+    y,
+    unit.x,
+    unit.y,
+    flagDimensions.width,
+    flagDimensions.height,
+  );
 }

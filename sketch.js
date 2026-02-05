@@ -45,6 +45,7 @@ function draw() {
     return;
   }
   drawCountries();
+  drawOccupation();
   drawResources();
   units.forEach((unit) => unit.draw());
   rounds.watchRound();

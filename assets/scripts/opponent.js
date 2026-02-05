@@ -19,7 +19,7 @@ class Opponent {
     // right now, this function does not gaf about difficulty or what's actually happening in the game
     // it just makes random moves
     for (let i = 0; i < 3; ) {
-      switch (randomInt(0, 5)) {
+      switch (randomInt(0, 7)) {
         case 1:
           console.log("oppoinent moving unit into own territory");
           // move a random unit into our territory
@@ -159,6 +159,28 @@ class Opponent {
           units.push(splitUnit);
           this.unitsEverCreated++;
           console.log("split unit into:", splitUnit);
+          updateUnitsListUI();
+          break;
+        case 6:
+          // remove all units under 2500 size in germany
+          for (const unit of this.myUnits()) {
+            if (unit.size >= 2500) {
+              continue;
+            }
+            // remove unit
+            this.addResources(
+              Math.round(
+                getUnitDeployCost(
+                  unit.size,
+                  unit.speed,
+                  unit.attack,
+                  unit.stamina,
+                ) / 3,
+              ),
+            );
+            console.log("opponent removing unit:", unit);
+            units = units.filter((u) => u.name !== unit.name);
+          }
           updateUnitsListUI();
           break;
       }

@@ -50,8 +50,18 @@ class Rounds {
           " at index ",
           index,
         );
-        document.getElementById("move-unit-button-" + index).disabled = true;
-        document.getElementById("remove-unit-button-" + index).disabled = true;
+        const moveUnitButton = document.getElementById(
+          "move-unit-button-" + index,
+        );
+        if (moveUnitButton) {
+          moveUnitButton.disabled = true;
+        }
+        const removeUnitButton = document.getElementById(
+          "remove-unit-button-" + index,
+        );
+        if (removeUnitButton) {
+          removeUnitButton.disabled = true;
+        }
       }
       unit.handleAdvanceRound();
     }
