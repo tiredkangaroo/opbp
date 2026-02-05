@@ -578,15 +578,15 @@ function drawArrow(base, vec, myColor) {
 }
 
 function getOccupationPolygonForUnit(unit) {
-  if (unit.cachedOccupationPolygonDirty && unit.cachedOccupationPolygon) {
-    return unit.cachedOccupationPolygon;
-  }
+  // if (unit.cachedOccupationPolygonDirty && unit.cachedOccupationPolygon) {
+  //   return unit.cachedOccupationPolygon;
+  // }
 
   let points = []; // array of [x, y] points
   const max_radius = unit.speed * 6.7; // max movement in a round
   const enemies = units.filter((u) => u.belongsTo !== unit.belongsTo);
 
-  for (let deg = 0; deg < 360; deg += 10) {
+  for (let deg = 0; deg < 360; deg += 90) {
     // step every 10 degrees
     // we need to find the farthest point in this direction that is both on the map
     // and is the farthest we can go without touching another unit (of different country)
@@ -656,10 +656,14 @@ function drawOccupation() {
   for (const unit of units) {
     const occupationPolygon = getOccupationPolygonForUnit(unit);
     fill(
-      unit.belongsTo === "france" ? "rgba(0,85,164,0.4)" : "rgba(221,0,0,0.4)",
+      unit.belongsTo === "france"
+        ? "rgba(0,30,164,0.4)"
+        : "rgba(103, 0, 0, 0.76)",
     );
     stroke(
-      unit.belongsTo === "france" ? "rgba(0,85,164,0.4)" : "rgba(221,0,0,0.4)",
+      unit.belongsTo === "france"
+        ? "rgba(0,30,164,0.4)"
+        : "rgba(103, 0, 0, 0.76)",
     );
     strokeWeight(2);
     beginShape();

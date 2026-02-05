@@ -162,8 +162,12 @@ class Opponent {
           updateUnitsListUI();
           break;
         case 6:
-          // remove all units under 2500 size in germany
-          for (const unit of this.myUnits()) {
+          // remove a units under 2500 size in germany
+          const mU = this.myUnits();
+          if (mU.length <= 1) {
+            break;
+          }
+          for (const unit of mU) {
             if (unit.size >= 2500) {
               continue;
             }
@@ -180,6 +184,7 @@ class Opponent {
             );
             console.log("opponent removing unit:", unit);
             units = units.filter((u) => u.name !== unit.name);
+            break;
           }
           updateUnitsListUI();
           break;
