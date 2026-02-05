@@ -202,3 +202,35 @@ function randomInt(min, max) {
   // inclusive
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+// returns distance to hit or null if no hit
+function rayVsUnitBox(originX, originY, dirX, dirY, maxDist, otherUnit) {
+  const flagScale = otherUnit.getFlagScale();
+  const dims = getFlagDimensions(otherUnit.belongsTo, flagScale);
+
+  const minX = otherUnit.x - dims.width;
+  const maxX = otherUnit.x + dims.width;
+  const minY = otherUnit.y - dims.height;
+  const maxY = otherUnit.y + dims.height;
+
+  // slab method for ray vs aabb
+  const invDx = 1 / dirX;
+  const invDy = 1 / dirY;
+
+  let t1 = (minX - originX) * invDx;
+  let t2 = (maxX - originX) * invDx;
+  let t3 = (minY - originY) * invDy;
+  let t4 = (maxY - originY) * invDy;
+
+  const tmin = Math.max(Math.min(t1, t2), Math.min(t3, t4));
+
+  const tmax = Math.min(Math.max(t1, t2), Math.max(t3, t4));
+
+  // no hit
+  if (tmax < 0 || tmin > tmax) return null;
+
+  // first hit distance
+  if (tmin >= 0 && tmin <= maxDist) return tmin;
+
+  return null;
+}

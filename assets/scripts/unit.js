@@ -210,6 +210,7 @@ class Unit {
     this.x += deltaX / 40;
     this.y += deltaY / 40;
     setTimeout(() => {
+      this.cachedOccupationPolygonDirty = true;
       this.moveUnitTo(i - 1, deltaX, deltaY);
     }, 25);
   }
@@ -583,6 +584,7 @@ function getOccupationPolygonForUnit(unit) {
 
   let points = []; // array of [x, y] points
   const max_radius = unit.speed * 6.7; // max movement in a round
+  const enemies = units.filter((u) => u.belongsTo !== unit.belongsTo);
 
   for (let deg = 0; deg < 360; deg += 10) {
     // step every 10 degrees
@@ -593,46 +595,56 @@ function getOccupationPolygonForUnit(unit) {
 
     // guys ap physics is paying off
     // vertical component is cos(deg), horizontal component is sin(deg)
+    const dirX = Math.sin(rad);
+    const dirY = Math.cos(rad);
 
-    for (const otherUnit of units) {
+    let bestDistance = max_radius;
+
+    for (const otherUnit of enemies) {
       if (otherUnit.belongsTo === unit.belongsTo) continue; // skip own units (including self)
 
       const dx = otherUnit.x - unit.x;
       const dy = otherUnit.y - unit.y;
 
       if (Math.hypot(dx, dy) > max_radius) {
-        // too far to interfere (max distance)
-        points.push([
-          unit.x + max_radius * Math.cos(rad),
-          unit.y + max_radius * Math.sin(rad),
-        ]);
+        // could probably make this more efficient by just comparing without square roots
+        // too far too interfere
         continue;
       }
 
-      let foundPoint = false;
-      let farthestValidPoint = null;
-      for (let r = max_radius; r >= 0; r -= 1) {
-        const testX = unit.x + r * Math.cos(rad);
-        const testY = unit.y + r * Math.sin(rad);
+      const hitDistance = rayVsUnitBox(
+        unit.x,
+        unit.y,
+        dirX,
+        dirY,
+        max_radius,
+        otherUnit,
+      );
 
-        if (!pointInMap(testX, testY)) {
-          // off map
-          continue;
-        }
-        if (pointInUnitBox(testX, testY, otherUnit)) {
-          // touching other unit
-          continue;
-        }
-
-        // found the farthest point in this direction that is valid
-        farthestValidPoint = [testX, testY];
-        foundPoint = true;
-        break;
-      }
-      if (foundPoint) {
-        points.push(farthestValidPoint);
+      if (hitDistance !== null && hitDistance < bestDistance) {
+        bestDistance = hitDistance;
       }
     }
+
+    let px = unit.x + dirX * bestDistance;
+    let py = unit.y + dirY * bestDistance;
+
+    if (!pointInMap(px, py)) {
+      // binary shrink (csp traversal unit ❤️‍🩹)
+      let lo = 0;
+      let hi = bestDistance;
+      for (let k = 0; k < 6; k++) {
+        const mid = (lo + hi) * 0.5;
+        const tx = unit.x + dirX * mid;
+        const ty = unit.y + dirY * mid;
+        if (pointInMap(tx, ty)) lo = mid;
+        else hi = mid;
+      }
+      px = unit.x + dirX * lo;
+      py = unit.y + dirY * lo;
+    }
+
+    points.push([px, py]);
   }
   unit.cachedOccupationPolygon = points;
   unit.cachedOccupationPolygonDirty = false;
