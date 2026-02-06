@@ -579,16 +579,21 @@ function drawArrow(base, vec, myColor) {
 }
 
 function getOccupationPolygonForUnit(unit) {
-  // if (unit.cachedOccupationPolygonDirty && unit.cachedOccupationPolygon) {
-  //   return unit.cachedOccupationPolygon;
-  // }
+  if (unit.cachedOccupationPolygon && !rounds.inProgress) {
+    return unit.cachedOccupationPolygon;
+  }
+
+  if (inWhatCountry(unit.x, unit.y) === unit.belongsTo) {
+    // don't draw occupation if unit is in its own territory
+    return [];
+  }
 
   let points = []; // array of [x, y] points
   const max_radius = unit.speed * 6.7; // max movement in a round
   const min_radius = 10; // minimum occupation radius
   const enemies = units.filter((u) => u.belongsTo !== unit.belongsTo);
 
-  for (let deg = 0; deg < 360; deg += 90) {
+  for (let deg = 0; deg < 360; deg += 60) {
     // step every 10 degrees
     // we need to find the farthest point in this direction that is both on the map
     // and is the farthest we can go without touching another unit (of different country)
@@ -658,25 +663,66 @@ function getOccupationPolygonForUnit(unit) {
 
 // draws occupatied areas by units
 function drawOccupation() {
+  const francePolygons = [];
+  const germanyPolygons = [];
+
   for (const unit of units) {
     const occupationPolygon = getOccupationPolygonForUnit(unit);
-    fill(
-      unit.belongsTo === "france"
-        ? "rgba(0,30,164,0.4)"
-        : "rgba(103, 0, 0, 0.76)",
-    );
-    stroke(
-      unit.belongsTo === "france"
-        ? "rgba(0,30,164,0.4)"
-        : "rgba(103, 0, 0, 0.76)",
-    );
-    strokeWeight(2);
+    if (occupationPolygon.length < 4) continue;
+    if (unit.belongsTo === "france") {
+      francePolygons.push(occupationPolygon);
+    } else {
+      germanyPolygons.push(occupationPolygon);
+    }
+  }
+
+  drawMergedPolygons(francePolygons, "rgba(0,30,164,0.4)");
+  drawMergedPolygons(germanyPolygons, "rgba(103, 0, 0, 0.76)");
+  drawContestedZones(francePolygons, germanyPolygons);
+}
+
+// regular for now, but it should merge polygons properly later
+function drawMergedPolygons(polygons, fillStyle) {
+  push();
+  fill(fillStyle);
+  noStroke();
+  for (const polygon of polygons) {
     beginShape();
-    for (const point of occupationPolygon) {
-      vertex(point[0], point[1]);
+    for (const [px, py] of polygon) {
+      vertex(...realgrid(px, py));
     }
     endShape(CLOSE);
   }
+  pop();
+}
+
+function drawContestedZones(francePolygons, germanyPolygons) {
+  if (francePolygons.length === 0 || germanyPolygons.length === 0) {
+    return; // no contested zones possible
+  }
+  // close each polygon by repeating first point at end
+  for (const polygon of francePolygons) {
+    polygon.push(polygon[0]);
+  }
+  for (const polygon of germanyPolygons) {
+    polygon.push(polygon[0]);
+  }
+
+  console.log(francePolygons, germanyPolygons);
+  const intersect = turf.intersect(
+    turf.polygon(francePolygons),
+    turf.polygon(germanyPolygons),
+  );
+  if (!intersect) return; // no contested zones
+
+  beginShape();
+  fill(255, 255, 255, 150);
+  for (const coords of intersect.geometry.coordinates) {
+    for (const [px, py] of coords) {
+      vertex(...realgrid(px, py));
+    }
+  }
+  endShape(CLOSE);
 }
 
 function pointInUnitBox(x, y, unit) {
