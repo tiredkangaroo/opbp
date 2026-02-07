@@ -22,6 +22,7 @@ class Unit {
     this.belongsTo = belongsTo; // "france" or "germany"
     this.proposedActions = [];
     this.continuingActions = false;
+    this.isGuardUnit = name.includes("Guard");
 
     this.animation = false;
     this.animStartX = 0;
@@ -49,7 +50,10 @@ class Unit {
     drawFlag(this.belongsTo, this.x, this.y, flagScale);
 
     // if mouse is over unit, show unit info box
-    if (mouseInBox(this.x, this.y, 30, 30)) {
+    if (
+      mouseInBox(this.x, this.y, flagDimensions.width, flagDimensions.height)
+    ) {
+      push();
       fill(0, 0, 0, 200);
       rect(mouseX + 10, mouseY + 10, 135, 90);
       fill(255);
@@ -59,6 +63,14 @@ class Unit {
       text(`Speed: ${this.speed}`, mouseX + 15, mouseY + 55);
       text(`Attack: ${this.attack}`, mouseX + 15, mouseY + 70);
       text(`Stamina: ${this.stamina}`, mouseX + 15, mouseY + 85);
+
+      // scroll the Your Units box to the unit info if hovering over the unit
+      if (this.belongsTo === playingAs) {
+        const unitIndex = units
+          .filter((u) => u.belongsTo === playingAs)
+          .findIndex((u) => u.name === this.name);
+      }
+      pop();
     }
 
     // see if unit has movement and we'll draw an error to the target location
@@ -91,10 +103,12 @@ class Unit {
     }
 
     // level text above unit
+    push();
     fill(255);
-    textSize(14);
-    const nameSplit = this.name.split(" ");
-    text(`${nameSplit[0]} Unit`, this.x - 5, this.y - 5);
+    textSize(12);
+    textAlign(CENTER, CENTER);
+    text(this.shortName(), this.x + flagDimensions.width / 2, this.y - 10);
+    pop();
 
     // animation portion
     if (!this.animating) return;
@@ -118,6 +132,15 @@ class Unit {
     displayRoundCost(); // moved to different location = different upkeep costs
 
     pop();
+  }
+
+  shortName() {
+    if (this.name.includes("Guard")) {
+      // return capitals[this.belongsTo][0] + " Guard";
+      return this.name.split(" ")[0] + " Guard";
+    }
+    const nameSplit = this.name.split(" ");
+    return nameSplit[0] + " " + nameSplit[3];
   }
 
   addProposedAction(action) {
@@ -579,10 +602,6 @@ function drawArrow(base, vec, myColor) {
 }
 
 function getOccupationPolygonForUnit(unit) {
-  if (unit.cachedOccupationPolygon && !rounds.inProgress) {
-    return unit.cachedOccupationPolygon;
-  }
-
   if (inWhatCountry(unit.x, unit.y) === unit.belongsTo) {
     // don't draw occupation if unit is in its own territory
     return [];
@@ -593,7 +612,7 @@ function getOccupationPolygonForUnit(unit) {
   const min_radius = 10; // minimum occupation radius
   const enemies = units.filter((u) => u.belongsTo !== unit.belongsTo);
 
-  for (let deg = 0; deg < 360; deg += 60) {
+  for (let deg = 0; deg < 360; deg += 90) {
     // step every 10 degrees
     // we need to find the farthest point in this direction that is both on the map
     // and is the farthest we can go without touching another unit (of different country)
@@ -663,6 +682,9 @@ function getOccupationPolygonForUnit(unit) {
 
 // draws occupatied areas by units
 function drawOccupation() {
+  if (rounds.inProgress) {
+    return;
+  }
   const francePolygons = [];
   const germanyPolygons = [];
 

@@ -25,6 +25,15 @@ function drawResources() {
     `German Casualties: ${german_casualties}`,
     ...vgrid(10, vgrid_height - 100),
   );
+
+  if (debug) {
+    // draw opponent resources for testing purposes
+    fill(255);
+    text(
+      `Opponent Resources: ${opponent.resources}`,
+      ...vgrid(10, vgrid_height - 75),
+    );
+  }
 }
 
 function updateResourcesForNewRound(roundNum) {
