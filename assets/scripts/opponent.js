@@ -5,24 +5,26 @@ class Opponent {
     this.resources = 500; // starting resources for opponent
     this.unitsEverCreated = 4; // starts with 4 units
   }
-  myUnits() {
+  myUnits(allowGuardUnits = false) {
     return units.filter(
-      (unit) => unit.belongsTo === this.playingas && !unit.isGuardUnit,
+      (unit) =>
+        unit.belongsTo === this.playingas &&
+        (allowGuardUnits || !unit.isGuardUnit),
     );
   }
-  myUnitsNotMoving() {
+  myUnitsNotMoving(allowGuardUnits = false) {
     return units.filter(
       (unit) =>
         unit.belongsTo === this.playingas &&
         unit.proposedActions.filter((a) => a.type === "move").length === 0 &&
-        !unit.isGuardUnit,
+        (allowGuardUnits || !unit.isGuardUnit),
     );
   }
   proposeOpposingActions() {
     // right now, this function does not gaf about difficulty or what's actually happening in the game
     // it just makes random moves
 
-    // check if any of player's unit is within a 120 pixel radius of the opponents's capital
+    // check if any of player's unit is within a 120 pixel radius of the opponents's capital: panic
     const unitsNearCapital = units.filter(
       (unit) =>
         unit.belongsTo !== this.playingas &&
@@ -38,31 +40,30 @@ class Opponent {
       );
       for (const unit of unitsNearCapital) {
         // move the closest unit to the capital towards the nearby unit
-        const myUnits = this.myUnitsNotMoving();
+        const myUnits = this.myUnitsNotMoving(true);
         if (myUnits.length === 0) {
           break; // no units to move
         }
-        let closestUnit = null;
-        let closestDist = Infinity;
         for (const u of myUnits) {
-          const dist = Math.hypot(u.x - unit.x, u.y - unit.y);
-          if (dist < closestDist) {
-            closestDist = dist;
-            closestUnit = u;
+          // can we affort to move this unit towards the nearby unit?
+          if (
+            calculateRoundCost(this.playingas) +
+              Math.min(Math.hypot(u.x - unit.x, u.y - unit.y), u.speed * 6.7) <
+            this.resources
+          ) {
+            // if yes, move!
+            u.addProposedAction({
+              type: "move",
+              targetX: unit.x,
+              targetY: unit.y,
+            });
+          } else {
+            console.log(
+              "opponent can't afford to move unit",
+              u.name,
+              "to defend capital",
+            );
           }
-        }
-        if (closestUnit) {
-          console.log(
-            "opponent moving unit",
-            closestUnit.name,
-            "towards nearby threat",
-            unit.name,
-          );
-          closestUnit.addProposedAction({
-            type: "move",
-            targetX: unit.x,
-            targetY: unit.y,
-          });
         }
 
         // later i should add: removing small units in the capital (to free up space for stronger units to move in), merging units in the capital, and deploying new units in the capital
@@ -189,26 +190,24 @@ class Opponent {
           );
           // find two units close to each other and merge them
           let merged = false;
-          for (const u1 of this.myUnits()) {
-            for (const u2 of this.myUnits()) {
+          for (const u1 of this.myUnits(true)) {
+            for (const u2 of this.myUnits(true)) {
               if (u1.name != u2.name && areTwoUnitsInContact(u1, u2)) {
                 console.log("merging units", u1.name, u2.name);
                 // merge u2 into u1 and pick the best stats
-                const i = units.indexOf(u1);
                 u1.size += u2.size;
                 u1.speed = Math.max(u1.speed, u2.speed);
                 u1.attack = Math.max(u1.attack, u2.attack);
                 u1.stamina = Math.max(u1.stamina, u2.stamina);
-                units[i] = u1;
-                // remove u2 from units
-                units = units.filter((unit) => unit.name !== u2.name);
-                updateUnitsListUI(); // must update unit lists ui bc indexes change in the units panel
+                console.log("merged unit:", u1);
+                u2.destroy();
+                console.log("destroyed unit:", u2);
                 merged = true;
                 break;
               }
-              if (merged) {
-                break;
-              }
+            }
+            if (merged) {
+              break;
             }
           }
           actionsDone++;

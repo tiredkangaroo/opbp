@@ -33,7 +33,7 @@ class Unit {
     this.animDuration = 40; // frames
 
     this.cachedOccupationPolygon = null;
-    this.cachedOccupationPolygonDirty = true; // whether the cache needs updating
+    this.cachedOccupationFromRound = -1;
   }
 
   getFlagScale() {
@@ -258,6 +258,7 @@ class Unit {
       rounds.wgDone();
     }
     units = units.filter((u) => u.name !== this.name);
+    updateUnitsListUI();
   }
 }
 
@@ -363,7 +364,7 @@ function updateUnitsListUI() {
         .join("")}
       <div style="margin-top: 4px;">
         <button id="move-unit-button-${index}">Move</button>
-        ${!isInEnemyTerritory ? `<button id="remove-unit-button-${index}">Remove</button>` : ""}
+        <button id="remove-unit-button-${index}">${isInEnemyTerritory ? "Surrender" : "Remove"}</button>
         ${myUnitsInContact.length > 0 ? `<button id="merge-unit-button-${index}">Merge with Nearby Units</button>` : ""}
         <button id="split-unit-button-${index}">Split unit</button>
       </div>
@@ -411,13 +412,27 @@ function updateUnitsListUI() {
     const removeButton = document.getElementById(`remove-unit-button-${i}`);
     if (removeButton) {
       removeButton.onclick = () => {
+        const unitForRemoval = units[i];
         // remove unit from units array
         units.splice(i, 1);
-        // return some resources
-        addResources(
-          getUnitDeployCost(u.size, u.speed, u.attack, u.stamina) / 3,
-        ); // refund 1/3rd of deploy cost (using units in battle will also wear down speed, attack, stamina and size so you'll get even less back)
-        // update UI
+        const deployCost = getUnitDeployCost(
+          u.size,
+          u.speed,
+          u.attack,
+          u.stamina,
+        );
+        if (
+          inWhatCountry(unitForRemoval.x, unitForRemoval.y) ===
+          unitForRemoval.belongsTo
+        ) {
+          // return some resources if removing (not if surrendering in enemy territory)
+          addResources(deployCost / 3); // refund 1/3rd of deploy cost (using units in battle will also wear down speed, attack, stamina and size so you'll get even less back)
+          // update UI
+        } else {
+          // surrendering unit (give resources to opponent)
+          opponent.addResources(deployCost / 6); // 1/6th given to opponent because unit is in enemy territory
+        }
+
         updateUnitsListUI();
         displayRoundCost();
       };
@@ -602,6 +617,10 @@ function drawArrow(base, vec, myColor) {
 }
 
 function getOccupationPolygonForUnit(unit) {
+  if (unit.cachedOccupationFromRound == rounds.currentRound) {
+    // from this round, can use cache
+    return unit.cachedOccupationPolygon;
+  }
   if (inWhatCountry(unit.x, unit.y) === unit.belongsTo) {
     // don't draw occupation if unit is in its own territory
     return [];
@@ -676,7 +695,6 @@ function getOccupationPolygonForUnit(unit) {
     points.push([px, py]);
   }
   unit.cachedOccupationPolygon = points;
-  unit.cachedOccupationPolygonDirty = false;
   return points;
 }
 
@@ -730,7 +748,6 @@ function drawContestedZones(francePolygons, germanyPolygons) {
     polygon.push(polygon[0]);
   }
 
-  console.log(francePolygons, germanyPolygons);
   const intersect = turf.intersect(
     turf.polygon(francePolygons),
     turf.polygon(germanyPolygons),

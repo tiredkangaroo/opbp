@@ -7,7 +7,7 @@ let franceData = null;
 let germanyData = null;
 let playingAs = "france";
 
-let debug = true;
+let debug = new URLSearchParams(window.location.search).get("debug") === "true";
 
 // capitals in virtual grid coordinates
 const capitals = {

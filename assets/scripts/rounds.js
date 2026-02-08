@@ -286,21 +286,23 @@ function calculateRoundCost(country) {
   let totalCost = 0;
 
   for (const u of units.filter((u) => u.belongsTo === country)) {
-    // normalize
-    const sizeScale = Math.sqrt(u.size / 100);
-
     // heavier exponential so moving big armies hurts
     const unitMovement = u.getProposedMovementDistanceThisRound();
-    const movementFactor = (unitMovement || 0) / 100;
 
-    const movementCost =
-      Math.pow(sizeScale, 1.8) * Math.pow(movementFactor, 2.2) * 1.4;
-
-    totalCost += calculateUpkeepCostForUnits([u]) + movementCost;
+    totalCost +=
+      calculateUpkeepCostForUnits([u]) + calculateMovementCost(u, unitMovement);
   }
 
   // round for cleaner resource numbers
   return Math.round(totalCost);
+}
+
+function calculateMovementCost(unit, unitMovement) {
+  const sizeScale = Math.sqrt(unit.size / 100);
+  const movementFactor = (unitMovement || 0) / 100;
+  const movementCost =
+    Math.pow(sizeScale, 1.8) * Math.pow(movementFactor, 2.2) * 1.4;
+  return movementCost;
 }
 
 function calculateUpkeepCostForUnits(units) {
