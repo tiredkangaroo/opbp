@@ -1,5 +1,5 @@
-var resources = 275;
-var max_resources = 1250;
+var resources = 350;
+var max_resources = 4000;
 var french_casualties = 0;
 var german_casualties = 0;
 

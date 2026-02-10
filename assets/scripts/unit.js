@@ -1,6 +1,6 @@
 const MIN_COST = 50;
 const MAX_COST = 500;
-let unitsEverDeployed = 3; // three because starts with 3 units
+let unitsEverDeployed = 0;
 // {
 //     type: "move",
 //     // data for action type
@@ -323,6 +323,7 @@ function updateUnitsListUI() {
   const unitsListDiv = document.getElementById("units-list");
   unitsListDiv.innerHTML = "";
 
+  const unitElements = [];
   units.forEach((unit, index) => {
     if (unit.belongsTo !== playingAs) return;
 
@@ -347,7 +348,7 @@ function updateUnitsListUI() {
       }
     }
 
-    unitsListDiv.innerHTML += `<div class="unit-item">
+    unitElements.push(`<div class="unit-item">
       <strong>${unit.name}</strong><br/>
       <p><b>Location</b>: ${currentLocation}</p>
       <p><b>Size</b>: ${unit.size}, <b>Speed</b>: ${unit.speed}, <b>Attack</b>: ${unit.attack}, <b>Stamina</b>: ${unit.stamina}</p>
@@ -368,8 +369,22 @@ function updateUnitsListUI() {
         ${myUnitsInContact.length > 0 ? `<button id="merge-unit-button-${index}">Merge with Nearby Units</button>` : ""}
         <button id="split-unit-button-${index}">Split unit</button>
       </div>
-    </div>`;
+    </div></div>`);
   });
+
+  // guard units go to the bottom
+  unitElements.sort((a, b) => {
+    const unitA = units.find((u) => a.includes(u.name));
+    const unitB = units.find((u) => b.includes(u.name));
+    if (unitA.isGuardUnit && !unitB.isGuardUnit) {
+      return 1;
+    } else if (!unitA.isGuardUnit && unitB.isGuardUnit) {
+      return -1;
+    } else {
+      return 0;
+    }
+  });
+  unitsListDiv.innerHTML = unitElements.join("");
 
   for (let i = 0; i < units.length; i++) {
     const u = units[i];
@@ -617,13 +632,9 @@ function drawArrow(base, vec, myColor) {
 }
 
 function getOccupationPolygonForUnit(unit) {
-  if (unit.cachedOccupationFromRound == rounds.currentRound) {
+  if (unit.cachedOccupationFromRound == rounds.roundNumber) {
     // from this round, can use cache
     return unit.cachedOccupationPolygon;
-  }
-  if (inWhatCountry(unit.x, unit.y) === unit.belongsTo) {
-    // don't draw occupation if unit is in its own territory
-    return [];
   }
 
   let points = []; // array of [x, y] points
@@ -631,8 +642,25 @@ function getOccupationPolygonForUnit(unit) {
   const min_radius = 10; // minimum occupation radius
   const enemies = units.filter((u) => u.belongsTo !== unit.belongsTo);
 
-  for (let deg = 0; deg < 360; deg += 90) {
-    // step every 10 degrees
+  if (inWhatCountry(unit.x, unit.y) === unit.belongsTo) {
+    // only calculate occupation if in own territory if there are enemies nrby
+    let continueCalculating = false;
+    for (let enemy of enemies) {
+      const dx = enemy.x - unit.x;
+      const dy = enemy.y - unit.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance > max_radius) {
+        continue;
+      }
+      continueCalculating = true;
+      break;
+    }
+    if (!continueCalculating) {
+      return []; // no enemies nearby in own territory, so no occupation area
+    }
+  }
+
+  for (let deg = 0; deg < 360; deg += 10) {
     // we need to find the farthest point in this direction that is both on the map
     // and is the farthest we can go without touching another unit (of different country)
 
@@ -695,6 +723,7 @@ function getOccupationPolygonForUnit(unit) {
     points.push([px, py]);
   }
   unit.cachedOccupationPolygon = points;
+  unit.cachedOccupationFromRound = rounds.roundNumber;
   return points;
 }
 
