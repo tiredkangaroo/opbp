@@ -98,6 +98,7 @@ function draw() {
     return;
   }
   drawCountries();
+  drawCountryNames();
   drawCapitals();
   drawOccupation();
   drawResources();
@@ -109,6 +110,17 @@ function draw() {
     1200,
     20,
   );
+}
+
+function drawCountryNames() {
+  push();
+  fill(255);
+  textSize(20);
+  textStyle(BOLD);
+  textAlign(CENTER, CENTER);
+  text("France", ...vgrid(571, 517));
+  text("Germany", ...vgrid(892, 256));
+  pop();
 }
 
 function drawCountries() {

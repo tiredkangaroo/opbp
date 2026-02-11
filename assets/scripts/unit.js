@@ -549,7 +549,7 @@ function getUnitName(currentNumberOfUnits, unitCountry) {
   return `${numberWithSuffix} ${unitCountry == "france" ? "French" : "German"} Army Unit`;
 }
 
-function getUnitDeployCost(size, speed, attack, stamina) {
+function getUnitDeployCost(size, speed, attack, stamina, distanceFromCapital) {
   // let's hope ts is balanced
   const sizeNorm = (size - 100) / (10000 - 100);
   const speedNorm = (speed - 10) / (20 - 10);
@@ -557,14 +557,41 @@ function getUnitDeployCost(size, speed, attack, stamina) {
   const staminaNorm = (stamina - 1) / (5 - 1);
   const power =
     sizeNorm * 0.35 + attackNorm * 0.3 + speedNorm * 0.2 + staminaNorm * 0.15;
-  const curvedPower = Math.pow(power, 1.3); // nonlinear curve to avoid spamming units
+  let powerWithDistanceFromCapital = power;
+  if (distanceFromCapital > 0) {
+    powerWithDistanceFromCapital = Math.pow(
+      power,
+      Math.min(distanceFromCapital / 100, 1.25),
+    );
+  }
+  const curvedPower = Math.pow(powerWithDistanceFromCapital, 1.3); // nonlinear curve to avoid spamming units
   const cost = Math.round(MIN_COST + curvedPower * (MAX_COST - MIN_COST));
   return cost;
 }
 
 function calculateDeployUnitCost() {
   const { size, speed, attack, stamina } = getDeployUnitSpecs();
-  const cost = getUnitDeployCost(size, speed, attack, stamina);
+  const positionRaw = document.getElementById(
+    "deploy-unit-position-display",
+  ).textContent;
+  const positionMatch = positionRaw.match(/\((\d+), (\d+)\)/);
+  let distanceFromCapital = 0;
+  if (positionMatch) {
+    x = parseInt(positionMatch[1]);
+    y = parseInt(positionMatch[2]);
+    distanceFromCapital = Math.hypot(
+      x - capitals[playingAs][1],
+      y - capitals[playingAs][2],
+    );
+  }
+  console.log("distance from capital:", distanceFromCapital);
+  const cost = getUnitDeployCost(
+    size,
+    speed,
+    attack,
+    stamina,
+    distanceFromCapital,
+  );
 
   // update deploy-unit-cost-display
   document.getElementById("deploy-unit-cost-display").innerText = `${cost}`;

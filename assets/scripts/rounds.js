@@ -13,6 +13,7 @@ class Rounds {
     this.wg = 0; // waitgroups for round before it can end
 
     this.conflicts = [];
+    this.historicalConflicts = []; // list of all conflict that have occurred
   }
 
   advanceRound() {
@@ -96,6 +97,9 @@ class Rounds {
       if (resolved) {
         // remove conflict from list
         this.conflicts = this.conflicts.filter((c) => c !== conflict);
+        this.historicalConflicts.push({
+          ...conflict,
+        }); // add copy of conflict to historical conflicts list for record keeping
         console.log(
           "Conflict between ",
           conflict.myUnit.name,
@@ -179,6 +183,8 @@ class Conflict {
     this.myUnit = myUnit;
     this.enemyUnit = enemyUnit;
     this.frame = 0;
+    this.myCasualties = 0;
+    this.enemyCasualties = 0;
   }
   resolveFrame() {
     // check if the units are still in contact
@@ -223,6 +229,8 @@ class Conflict {
 
     const myLoss = startingMyUnitSize - this.myUnit.size;
     const enemyLoss = startingEnemyUnitSize - this.enemyUnit.size;
+    this.myCasualties += myLoss;
+    this.enemyCasualties += enemyLoss;
     if (playingAs === "france") {
       french_casualties += myLoss;
       german_casualties += enemyLoss;
