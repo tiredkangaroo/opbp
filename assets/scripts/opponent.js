@@ -2,23 +2,33 @@ class Opponent {
   constructor(op_playingas, difficulty) {
     this.playingas = op_playingas;
     this.difficulty = difficulty; // range 1-3
-    this.resources = 500; // starting resources for opponent
+    this.resources = 3000; // starting resources for opponent
     this.unitsEverCreated = 4; // starts with 4 units
   }
   myUnits(allowGuardUnits = false) {
-    return units.filter(
-      (unit) =>
-        unit.belongsTo === this.playingas &&
-        (allowGuardUnits || !unit.isGuardUnit),
-    );
+    return units
+      .filter(
+        (unit) =>
+          unit.belongsTo === this.playingas &&
+          (allowGuardUnits || !unit.isGuardUnit),
+      )
+      .sort((a, b) => {
+        // random order
+        return Math.random() - 0.5;
+      });
   }
   myUnitsNotMoving(allowGuardUnits = false) {
-    return units.filter(
-      (unit) =>
-        unit.belongsTo === this.playingas &&
-        unit.proposedActions.filter((a) => a.type === "move").length === 0 &&
-        (allowGuardUnits || !unit.isGuardUnit),
-    );
+    return units
+      .filter(
+        (unit) =>
+          unit.belongsTo === this.playingas &&
+          unit.proposedActions.filter((a) => a.type === "move").length === 0 &&
+          (allowGuardUnits || !unit.isGuardUnit),
+      )
+      .sort((a, b) => {
+        // random order
+        return Math.random() - 0.5;
+      });
   }
   proposeOpposingActions() {
     // right now, this function does not gaf about difficulty or what's actually happening in the game
@@ -73,7 +83,7 @@ class Opponent {
     var actionsDone = 0;
     const actionToDo = this.difficulty;
     while (actionsDone < actionToDo) {
-      switch (randomInt(1, 15)) {
+      switch (randomInt(1, 20)) {
         case 1:
         case 2:
           console.log("oppoinent moving unit into own territory");
@@ -145,17 +155,32 @@ class Opponent {
           // between a quarter and a third of current resources except size and speed
           const size =
             Math.floor(
-              ((this.resources / MAX_COST) * 10000) / randomInt(1, 2),
+              Math.pow(
+                ((this.resources / MAX_COST) * 10000) / randomInt(1, 2),
+                0.85,
+              ),
             ) || 100;
-          const speed =
-            Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)) ||
-            10;
-          const attack =
-            Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)) ||
-            1;
-          const stamina =
-            Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)) ||
-            1;
+          const speed = Math.min(
+            Math.pow(
+              Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)),
+              0.8,
+            ) || 10,
+            25,
+          );
+          const attack = Math.min(
+            Math.pow(
+              Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)),
+              0.75,
+            ) || 1,
+            15,
+          );
+          const stamina = Math.max(
+            Math.pow(
+              Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)),
+              0.67,
+            ) || 1,
+            5,
+          );
           const [x, y] = randomPointInFeature(
             this.playingas === "france" ? franceData : germanyData,
             1000,
@@ -185,6 +210,8 @@ class Opponent {
           actionsDone++;
           break;
         case 8:
+        case 19:
+        case 20:
           console.log(
             "opponent attempting to merge the first two units it can",
           );
@@ -353,6 +380,76 @@ class Opponent {
           }
           actionsDone++;
           break;
+        case 17:
+        case 18:
+          // deploy more units witin a 60 pixel radius of our capital
+          // if we have the resources to do so, and then merge all units in that radius
+          const capitalCoords =
+            capitals[this.playingas === "france" ? "france" : "germany"];
+          const nearbyUnits = this.myUnits().filter(
+            (u) =>
+              Math.hypot(u.x - capitalCoords[1], u.y - capitalCoords[2]) < 60,
+          );
+          if (nearbyUnits.length >= 3) {
+            break;
+          }
+          const sze =
+            Math.floor(
+              ((this.resources / MAX_COST) * 10000) / randomInt(1, 2),
+            ) || 100;
+          const seed = Math.min(
+            Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)),
+            25,
+          );
+          const atack =
+            Math.min(
+              Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)),
+              15,
+            ) || 1;
+          const samina =
+            Math.min(
+              Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)),
+              10,
+            ) || 1;
+          const c = getUnitDeployCost(sze, seed, atack, samina) || 50;
+          if (c > this.resources) {
+            break; // can't afford
+          }
+          this.addResources(-c);
+          const nU = new Unit(
+            capitalCoords[1] + randomInt(-30, 30),
+            capitalCoords[2] + randomInt(-30, 30),
+            getUnitName(this.unitsEverCreated, this.playingas),
+            1,
+            sze,
+            seed,
+            atack,
+            samina,
+            this.playingas,
+          );
+          units.push(nU);
+          this.unitsEverCreated++;
+          console.log("deployed new unit near capital for opponent:", nU);
+          updateUnitsListUI();
+          // merge all units in that radius
+          const unitsToMerge = this.myUnits(true).filter((u) =>
+            areTwoUnitsInContact(u, nU),
+          );
+          for (const unit of unitsToMerge) {
+            if (unit.name === nU.name) {
+              continue;
+            }
+            console.log("merging unit", unit.name, "into", nU.name);
+            nU.size += unit.size;
+            nU.speed = Math.max(nU.speed, unit.speed);
+            nU.attack = Math.max(nU.attack, unit.attack);
+            nU.stamina = Math.max(nU.stamina, unit.stamina);
+            console.log("merged unit:", nU);
+            unit.destroy();
+            console.log("destroyed unit:", unit);
+          }
+          actionsDone++;
+          break;
         default:
           // do nothing
           console.log("opponent doing nothing");
@@ -361,6 +458,12 @@ class Opponent {
     }
   }
   addResources(amount) {
+    if (!amount || !(this.resources + amount)) {
+      // to catch NaN and undefined and stuff
+      console.log("invalid amount passed to addResources:", amount);
+      this.resources = 0;
+      return;
+    }
     this.resources = Math.max(
       Math.min(Math.round(this.resources + amount), max_resources),
       0,

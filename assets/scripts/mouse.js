@@ -12,9 +12,9 @@ class Mouse {
     }
     if (mouseClickHandler === null) {
       fill(255);
-      rect(mouseX, mouseY, 8, 8);
+      rect(mouseX - 4, mouseY - 4, 8, 8);
     } else {
-      image(this.selectImage, mouseX, mouseY, 18, 18);
+      image(this.selectImage, mouseX - 9, mouseY - 9, 18, 18);
     }
   }
 }

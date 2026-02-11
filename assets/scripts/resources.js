@@ -1,4 +1,4 @@
-var resources = 350;
+var resources = 2000;
 var max_resources = 4000;
 var french_casualties = 0;
 var german_casualties = 0;
@@ -51,7 +51,7 @@ function updateResourcesForNewRound(roundNum) {
     max_resources,
   );
   opponent.resources = Math.min(
-    opponent.resources + (67 + (roundNum ^ (0.85 * 20))),
+    opponent.resources + (100 + (roundNum ^ (1 * 20))),
     max_resources,
   );
   console.log("resources updated to:", resources, opponent.resources);

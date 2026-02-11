@@ -638,7 +638,19 @@ function getOccupationPolygonForUnit(unit) {
   }
 
   let points = []; // array of [x, y] points
-  const max_radius = unit.speed * 6.7; // max movement in a round
+  const max_radius =
+    Math.min(unit.speed, 25) *
+    6.7 *
+    Math.min((unit.size - 100) / (30000 - 100), 1);
+  // console.log(
+  //   unit.name,
+  //   "occupation max radius:",
+  //   max_radius,
+  //   "where speed is",
+  //   unit.speed,
+  //   "and size is",
+  //   unit.size,
+  // );
   const min_radius = 10; // minimum occupation radius
   const enemies = units.filter((u) => u.belongsTo !== unit.belongsTo);
 
