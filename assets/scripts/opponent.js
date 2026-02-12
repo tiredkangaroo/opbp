@@ -34,6 +34,25 @@ class Opponent {
     // right now, this function does not gaf about difficulty or what's actually happening in the game
     // it just makes random moves
 
+    // clean up opponent units (if out of bounds)
+    for (const unit of this.myUnits()) {
+      if (unit.x < 196 || unit.x > 1183 || unit.y < 0 || unit.y > 900) {
+        console.log("opponent unit out of bounds, removing:", unit);
+        // give half resources back
+        this.addResources(
+          Math.round(
+            getUnitDeployCost(
+              unit.size,
+              unit.speed,
+              unit.attack,
+              unit.stamina,
+            ) / 2,
+          ),
+        );
+        units = units.filter((u) => u.name !== unit.name);
+      }
+    }
+
     // check if any of player's unit is within a 120 pixel radius of the opponents's capital: panic
     const unitsNearCapital = units.filter(
       (unit) =>

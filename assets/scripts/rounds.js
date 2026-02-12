@@ -93,7 +93,7 @@ class Rounds {
 
     // draw every conflict
     for (const conflict of this.conflicts) {
-      const resolved = conflict.resolveFrame();
+      const resolved = conflict.resolveFrame(this.conflicts);
       if (resolved) {
         // remove conflict from list
         this.conflicts = this.conflicts.filter((c) => c !== conflict);
@@ -186,7 +186,12 @@ class Conflict {
     this.myCasualties = 0;
     this.enemyCasualties = 0;
   }
-  resolveFrame() {
+  conflictName() {
+    return (
+      "Conflict between " + this.myUnit.name + " and " + this.enemyUnit.name
+    );
+  }
+  resolveFrame(allConflicts) {
     // check if the units are still in contact
     if (!areTwoUnitsInContact(this.myUnit, this.enemyUnit)) {
       console.log(
@@ -207,16 +212,44 @@ class Conflict {
     }
 
     // this should be good? or horribly unbalanced, who even knows atp
-    const myAttackPower =
+    let myAttackPower =
       (this.myUnit.size / 50) ** 0.9 *
         this.myUnit.attack *
         (1 + this.myUnit.stamina / 10) +
       Math.random() * this.myUnit.size;
-    const enemyAttackPower =
+
+    let enemyAttackPower =
       (this.enemyUnit.size / 50) ** 0.9 *
         this.enemyUnit.attack *
         (1 + this.enemyUnit.stamina / 10) +
       Math.random() * this.enemyUnit.size;
+
+    const otherConflictInvolvement = unitNamesInHowManyConflicts(allConflicts, [
+      this.myUnit.name,
+      this.enemyUnit.name,
+    ]);
+    if (otherConflictInvolvement[this.myUnit.name]) {
+      console.log(
+        "player unit involved in multiple conflicts, reducing attack power",
+        this.myUnit.name,
+        otherConflictInvolvement[this.myUnit.name],
+      );
+      myAttackPower = Math.pow(
+        myAttackPower,
+        Math.max(1 - 0.12 * otherConflictInvolvement[this.myUnit.name], 0.1),
+      ); // reduce attack power for each additional conflict the unit is involved in, no matter how large the other conflicts are
+    }
+    if (otherConflictInvolvement[this.enemyUnit.name]) {
+      console.log(
+        "enemy unit involved in multiple conflicts, reducing attack power",
+        this.enemyUnit.name,
+        otherConflictInvolvement[this.enemyUnit.name],
+      );
+      enemyAttackPower = Math.pow(
+        enemyAttackPower,
+        Math.max(1 - 0.12 * otherConflictInvolvement[this.enemyUnit.name], 0.1),
+      );
+    }
 
     const startingEnemyUnitSize = this.enemyUnit.size;
     this.enemyUnit.size = Math.round(
@@ -334,4 +367,18 @@ function displayRoundCost() {
     calculateUpkeepCostForUnits(
       units.filter((u) => u.belongsTo === playingAs),
     ).toFixed(0);
+}
+function unitNamesInHowManyConflicts(conflicts, unitNames) {
+  const conflictCount = {};
+  for (const conflict of conflicts) {
+    if (unitNames.includes(conflict.myUnit.name)) {
+      conflictCount[conflict.myUnit.name] =
+        (conflictCount[conflict.myUnit.name] || 0) + 1;
+    }
+    if (unitNames.includes(conflict.enemyUnit.name)) {
+      conflictCount[conflict.enemyUnit.name] =
+        (conflictCount[conflict.enemyUnit.name] || 0) + 1;
+    }
+  }
+  return conflictCount;
 }

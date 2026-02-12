@@ -40,7 +40,11 @@ let units = [
   // new Unit(550, 550, "3rd French Army Unit", 9, 8000, 14, 16, 5, "france"),
 ];
 
-let mouseClickHandler = null;
+let mouseClickHandler = function () {
+  if (debug) {
+    console.log("mouse clicked at", vgrid(mouseX, mouseY));
+  }
+};
 
 let mouseObj = null;
 
