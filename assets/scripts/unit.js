@@ -62,6 +62,7 @@ class Unit {
       rect(mouseX + 10, mouseY + 10, box_width, 90);
       fill(255);
       textSize(12);
+      textAlign(LEFT, CENTER);
       text(`${this.name}`, mouseX + 15, mouseY + 25);
       text(
         `Size: ${addCommasToNumber(Math.round(this.size))}`,
@@ -729,10 +730,6 @@ function getOccupationPolygonForUnit(unit) {
   const min_radius = 10; // minimum occupation radius
   const enemies = units.filter((u) => u.belongsTo !== unit.belongsTo);
 
-  if (inWhatCountry(unit.x, unit.y) === unit.belongsTo) {
-    return [];
-  }
-
   for (let deg = 0; deg < 360; deg += 10) {
     // we need to find the farthest point in this direction that is both on the map
     // and is the farthest we can go without touching another unit (of different country)
@@ -807,6 +804,8 @@ function drawOccupation() {
   }
   const francePolygons = [];
   const germanyPolygons = [];
+  let franceOccupationUnion = null;
+  let germanyOccupationUnion = null;
 
   for (const unit of units) {
     // used to visualize square occupation
@@ -826,17 +825,103 @@ function drawOccupation() {
     // pop();
 
     const occupationPolygon = getOccupationPolygonForUnit(unit);
-    if (occupationPolygon.length < 4) continue;
+    if (occupationPolygon.length < 4) {
+      continue;
+    }
     if (unit.belongsTo === "france") {
       francePolygons.push(occupationPolygon);
+      if (!franceOccupationUnion) {
+        franceOccupationUnion = turfPolyFromPoints(occupationPolygon);
+      } else {
+        franceOccupationUnion = turf.union(
+          franceOccupationUnion,
+          turfPolyFromPoints(occupationPolygon),
+        );
+      }
     } else {
       germanyPolygons.push(occupationPolygon);
+      if (!germanyOccupationUnion) {
+        germanyOccupationUnion = turfPolyFromPoints(occupationPolygon);
+      } else {
+        germanyOccupationUnion = turf.union(
+          germanyOccupationUnion,
+          turfPolyFromPoints(occupationPolygon),
+        );
+      }
     }
   }
+  if (!franceOccupationUnion || !germanyOccupationUnion) {
+    return;
+  }
+  const franceEffective = turf.intersect(franceData, franceOccupationUnion);
+  const germanyEffective = turf.intersect(germanyData, germanyOccupationUnion);
 
-  drawMergedPolygons(francePolygons, "rgba(0,30,164,0.4)");
-  drawMergedPolygons(germanyPolygons, "rgba(103, 0, 0, 0.76)");
-  drawContestedZones(francePolygons, germanyPolygons);
+  if (!franceEffective || !germanyEffective) {
+    return;
+  }
+
+  const franceClipped = turf.difference(franceEffective, germanyEffective);
+  const germanyClipped = turf.difference(germanyEffective, franceEffective);
+
+  if (!franceClipped || !germanyClipped) {
+    return;
+  }
+
+  let franceBorder = turf.polygonToLine(franceClipped);
+  let germanyBorder = turf.polygonToLine(germanyClipped);
+
+  const frontline = turf.intersect(franceBorder, germanyBorder);
+
+  if (frontline) {
+    const line = turf.polygonToLine(frontline);
+    console.log("frontline:", line);
+
+    // drw line to visualize frontline
+    drawFrontLine(line);
+  }
+
+  // drawMergedPolygons(francePolygons, "rgba(0,30,164,0.4)");
+  // drawMergedPolygons(germanyPolygons, "rgba(103, 0, 0, 0.76)");
+  // drawContestedZones(francePolygons, germanyPolygons);
+}
+
+function drawFrontLine(lineGeoJson) {
+  if (!lineGeoJson) return;
+
+  if (lineGeoJson.type === "FeatureCollection") {
+    // if it's a collection, call recursively on each feature and return
+    for (const feature of lineGeoJson.features) {
+      drawFrontLine(feature);
+    }
+    return;
+  }
+  const coords = lineGeoJson.geometry.coordinates;
+
+  stroke(0);
+  strokeWeight(3);
+  noFill();
+
+  if (lineGeoJson.geometry.type === "LineString") {
+    beginShape();
+    for (const [lon, lat] of coords) {
+      const [x, y] = project(lon, lat);
+
+      vertex(x * 1.15 - 110, y * 1.15 - 50);
+    }
+    endShape();
+  }
+
+  if (lineGeoJson.geometry.type === "MultiLineString") {
+    for (const segment of coords) {
+      beginShape();
+      for (const [lon, lat] of segment) {
+        const [x, y] = project(lon, lat);
+
+        vertex(x * 1.15 - 110, y * 1.15 - 50);
+      }
+      endShape();
+    }
+  }
 }
 
 // regular for now, but it should merge polygons properly later
@@ -852,6 +937,14 @@ function drawMergedPolygons(polygons, fillStyle) {
     endShape(CLOSE);
   }
   pop();
+}
+
+function turfPolyFromPoints(polygon) {
+  if (polygon.length < 4) return null;
+  if (polygon[0] !== polygon[polygon.length - 1]) {
+    polygon.push(polygon[0]);
+  }
+  return turf.polygon([polygon]);
 }
 
 function drawContestedZones(francePolygons, germanyPolygons) {

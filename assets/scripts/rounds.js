@@ -176,6 +176,14 @@ class Rounds {
 
     // draw every conflict
     for (const conflict of this.conflicts) {
+      // remove any movement proposals
+      conflict.myUnit.proposedActions = conflict.myUnit.proposedActions.filter(
+        (action) => action.type !== "move",
+      );
+      conflict.enemyUnit.proposedActions =
+        conflict.enemyUnit.proposedActions.filter(
+          (action) => action.type !== "move",
+        );
       const resolved = conflict.resolveFrame(this.conflicts);
       if (resolved) {
         // remove conflict from list

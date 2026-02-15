@@ -115,8 +115,6 @@ function draw() {
 
   units.forEach((unit) => unit.draw());
   drawCapitals();
-  // drawInvasionLine("france");
-  // drawInvasionLine("germany");
   drawResources();
   rounds.watchRound();
   mouseObj.draw();
@@ -311,4 +309,7 @@ function drawCapitals() {
     text("!", ...vgrid(berlinX, berlinY));
   }
   pop();
+
+  textStyle(NORMAL);
+  textAlign(LEFT, CENTER);
 }

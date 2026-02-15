@@ -1,5 +1,4 @@
 var resources = 2000;
-var max_resources = 4000;
 var french_casualties = 0;
 var german_casualties = 0;
 
@@ -10,12 +9,6 @@ function drawResources() {
   noStroke();
   textSize(16);
   text(`Resources: ${resources}`, ...vgrid(10, vgrid_height - 50));
-  rect(...vgrid(10, vgrid_height - 40), ...vgrid(barWidth, barHeight));
-  fill("#f570ff");
-  rect(
-    ...vgrid(10, vgrid_height - 40),
-    ...vgrid(barWidth * (resources / max_resources), barHeight),
-  );
   fill(0);
   text(
     `French Casualties: ${addCommasToNumber(french_casualties)}`,
@@ -46,20 +39,11 @@ function updateResourcesForNewRound(roundNum) {
   // round 6: 794
   // etc..
   // you don't have to deploy units every round so wtv
-  resources = Math.min(
-    resources + (67 + (roundNum ^ (0.85 * 20))),
-    max_resources,
-  );
-  opponent.resources = Math.min(
-    opponent.resources + (100 + (roundNum ^ (1 * 20))),
-    max_resources,
-  );
+  resources = resources + (67 + (roundNum ^ (0.85 * 20)));
+  opponent.resources = opponent.resources + (100 + (roundNum ^ (1 * 20)));
   console.log("resources updated to:", resources, opponent.resources);
 }
 
 function addResources(amount) {
-  resources = Math.max(
-    Math.min(Math.round(resources + amount), max_resources),
-    0,
-  );
+  resources = Math.max(Math.round(resources + amount), 0);
 }

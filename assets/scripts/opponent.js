@@ -180,10 +180,7 @@ class Opponent {
       this.resources = 0;
       return;
     }
-    this.resources = Math.max(
-      Math.min(Math.round(this.resources + amount), max_resources),
-      0,
-    );
+    this.resources = Math.max(Math.round(this.resources + amount), 0);
   }
 
   moveOpponentIntoOwnTerritory() {
@@ -642,7 +639,7 @@ function rayVsUnitBox(originX, originY, dirX, dirY, maxDist, otherUnit) {
   const max_radius = otherUnit.calculateMaxRadius();
   const isInEnemyTerritory =
     inWhatCountry(otherUnit.x, otherUnit.y) !== otherUnit.belongsTo;
-  const mul = isInEnemyTerritory ? 0.6 : 1.25; // smaller occupation in emeny terriroty i cant type;w
+  const mul = isInEnemyTerritory ? 0.8 : 1; // smaller occupation in emeny terriroty i cant type;w
   const dims = {
     width: max_radius * sqrt2 * mul,
     height: max_radius * sqrt2 * mul,
