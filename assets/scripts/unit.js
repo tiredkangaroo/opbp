@@ -55,20 +55,33 @@ class Unit {
     ) {
       push();
       fill(0, 0, 0, 200);
-      rect(mouseX + 10, mouseY + 10, 135, 90);
+      let box_width = 135;
+      if (this.name.length > 25) {
+        box_width += (this.name.length - 25) * 8; // make box wider for long unit names
+      }
+      rect(mouseX + 10, mouseY + 10, box_width, 90);
       fill(255);
       textSize(12);
       text(`${this.name}`, mouseX + 15, mouseY + 25);
-      text(`Size: ${this.size}`, mouseX + 15, mouseY + 40);
-      text(`Speed: ${this.speed}`, mouseX + 15, mouseY + 55);
-      text(`Attack: ${this.attack}`, mouseX + 15, mouseY + 70);
-      text(`Stamina: ${this.stamina}`, mouseX + 15, mouseY + 85);
+      text(
+        `Size: ${addCommasToNumber(Math.round(this.size))}`,
+        mouseX + 15,
+        mouseY + 40,
+      );
+      text(`Speed: ${round(this.speed, 1)}`, mouseX + 15, mouseY + 55);
+      text(`Attack: ${round(this.attack, 1)}`, mouseX + 15, mouseY + 70);
+      text(`Stamina: ${round(this.stamina, 1)}`, mouseX + 15, mouseY + 85);
 
       // scroll the Your Units box to the unit info if hovering over the unit
       if (this.belongsTo === playingAs) {
         const unitIndex = units
           .filter((u) => u.belongsTo === playingAs)
           .findIndex((u) => u.name === this.name);
+        const unitElement =
+          document.getElementsByClassName("unit-item")[unitIndex];
+        if (unitElement) {
+          unitElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       }
       pop();
     }
@@ -151,13 +164,29 @@ class Unit {
 
   handleAdvanceRound() {
     // level up!!
-    if (this.proposedActions.length === 0) {
-      if (this.level >= 10) return; // max level reached
-      this.stamina = Math.round(Math.min(this.stamina + 0.8, 5));
-      this.attack = Math.round(Math.min(this.attack + 0.8, 10));
-      this.speed = Math.round(Math.min(this.speed + 0.8, 20));
-      this.level = Math.min(this.level + 1, 10);
-      return;
+    const loc = inWhatCountry(this.x, this.y);
+    if (loc === this.belongsTo) {
+      if (this.proposedActions.length === 0) {
+        this.stamina = Math.round(Math.min(this.stamina + 0.8, 5));
+        this.attack = Math.round(Math.min(this.attack + 0.8, 10));
+        this.speed = Math.round(Math.min(this.speed + 0.8, 20));
+        this.size = Math.round(
+          this.size * (0.96 + Math.min(0.01 * this.stamina, 0.04)), // 1 stamina = lose 3% of troops, 4 & 5 stamina = lose 0% of troops
+        );
+        return;
+      }
+    } else {
+      // degrade unit if in enemy territory
+      this.stamina = Math.max(1, this.stamina - 0.5);
+      this.attack = Math.max(1, this.attack - 0.3);
+      this.speed = Math.max(10, this.speed - 0.3);
+      this.size = Math.round(
+        this.size * (0.9 + Math.min(0.02 * this.stamina, 0.09)), // 1 stamina = lose 8% of troops, 5 stamina = lose 1% of troops
+      );
+      if (this.size < 100) {
+        this.destroy();
+        return;
+      }
     }
 
     const newActions = [];
@@ -359,7 +388,7 @@ function updateUnitsListUI() {
     unitElements.push(`<div class="unit-item">
       <strong>${unit.name}</strong><br/>
       <p><b>Location</b>: ${currentLocation}</p>
-      <p><b>Size</b>: ${unit.size}, <b>Speed</b>: ${unit.speed}, <b>Attack</b>: ${unit.attack}, <b>Stamina</b>: ${unit.stamina}</p>
+      <p><b>Size</b>: ${addCommasToNumber(unit.size)} | <b>Speed</b>: ${unit.speed} | <b>Attack</b>: ${unit.attack} | <b>Stamina</b>: ${unit.stamina}</p>
       <div>
       ${unit.proposedActions
         .map((action, actionIdx) => {
@@ -859,4 +888,11 @@ function pointInUnitBox(x, y, unit) {
     flagDimensions.width,
     flagDimensions.height,
   );
+}
+function addCommasToNumber(num) {
+  num = num.toString();
+  for (let i = num.length - 3; i > 0; i -= 3) {
+    num = num.slice(0, i) + "," + num.slice(i);
+  }
+  return num;
 }

@@ -118,7 +118,7 @@ class Opponent {
     var actionsDone = 0;
     const actionToDo = this.difficulty;
     while (actionsDone < actionToDo) {
-      switch (randomInt(1, 20)) {
+      switch (randomInt(1, 25)) {
         case 1:
         case 2:
           actionsDone += this.moveOpponentIntoOwnTerritory();
@@ -155,7 +155,16 @@ class Opponent {
           break;
         case 17:
         case 18:
-          this.actionsDone += this.deployProtectionUnits();
+          actionsDone += this.deployProtectionUnits();
+          break;
+        case 21:
+        case 22:
+        case 23:
+        case 24:
+        case 25:
+          // opponent unit is in player territory, so send a unit to help
+          // it's like moveTowardsPlayerUnit but moves to opponent unit
+          actionsDone += this.moveTowardsOpponentUnitInPlayerTerritory();
           break;
         default:
           // do nothing
@@ -297,8 +306,8 @@ class Opponent {
     console.log("opponent attempting to merge the first two units it can");
     // find two units close to each other and merge them
     let merged = false;
-    for (const u1 of this.myUnits(true)) {
-      for (const u2 of this.myUnits(true)) {
+    for (const u1 of this.myUnits(true, true)) {
+      for (const u2 of this.myUnits(true, true)) {
         if (u1.name != u2.name && areTwoUnitsInContact(u1, u2)) {
           console.log("merging units", u1.name, u2.name);
           // merge u2 into u1 and pick the best stats
@@ -488,6 +497,49 @@ class Opponent {
         targetY: targetUnit.y,
       });
     }
+    return 1;
+  }
+  moveTowardsOpponentUnitInPlayerTerritory() {
+    // find the first opponent unit in player territory and move a unit that has a larger size towards it
+    const unitToMoveTo = units.find(
+      (u) =>
+        u.belongsTo !== this.playingas &&
+        inWhatCountry(u.x, u.y) !== this.playingas, // in player territory
+    );
+    if (!unitToMoveTo) {
+      return 0;
+    }
+    // find a unit larger than 6000 to move towards it
+    const myLargerUnits = this.myUnitsNotMoving().filter((u) => u.size > 6000);
+    if (myLargerUnits.length === 0) {
+      return 0;
+    }
+    // move the closest larger unit towards the target unit
+    let closestDist = Infinity;
+    let myUnit = null;
+    for (const m of myLargerUnits) {
+      const dist = Math.sqrt(
+        (m.x - unitToMoveTo.x) ** 2 + (m.y - unitToMoveTo.y) ** 2,
+      );
+      if (dist < closestDist) {
+        closestDist = dist;
+        myUnit = m;
+      }
+    }
+    if (myUnit) {
+      console.log(
+        "opponent moving unit",
+        myUnit.name,
+        "towards opponent unit in player territory",
+        unitToMoveTo.name,
+      );
+      myUnit.addProposedAction({
+        type: "move",
+        targetX: unitToMoveTo.x,
+        targetY: unitToMoveTo.y,
+      });
+    }
+    // we should otherwise deploy a new unit to move towards it
     return 1;
   }
   moveTowardsOpponentCapital() {

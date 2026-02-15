@@ -18,11 +18,11 @@ function drawResources() {
   );
   fill(0);
   text(
-    `French Casualties: ${french_casualties}`,
+    `French Casualties: ${addCommasToNumber(french_casualties)}`,
     ...vgrid(10, vgrid_height - 130),
   );
   text(
-    `German Casualties: ${german_casualties}`,
+    `German Casualties: ${addCommasToNumber(german_casualties)}`,
     ...vgrid(10, vgrid_height - 100),
   );
 
