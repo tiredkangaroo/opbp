@@ -82,7 +82,7 @@ function setup() {
           y,
           `${ordinalNumerals[i]} ${capitalName} Guard`,
           10,
-          2000,
+          4100,
           20,
           10,
           5,
@@ -104,6 +104,8 @@ function draw() {
   drawCountries();
   drawCountryNames();
   drawCapitals();
+  // drawInvasionLine("france");
+  // drawInvasionLine("germany");
   drawOccupation();
   drawResources();
   units.forEach((unit) => unit.draw());

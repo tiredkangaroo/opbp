@@ -14,6 +14,12 @@ class Rounds {
 
     this.conflicts = [];
     this.historicalConflicts = []; // list of all conflict that have occurred
+
+    // a capital and must be held uncontested for 3 rounds to win
+    this.capitalHeld = {
+      france: 0,
+      germany: 0,
+    };
   }
 
   advanceRound() {
@@ -150,12 +156,18 @@ class Rounds {
 
     if (this.canEndRound()) {
       console.log("Round can end now.");
+      if (this.checkForCapitalControl()) {
+      }
       this.inProgress = false;
       updateResourcesForNewRound(this.roundNumber);
       return;
     }
 
     updateUnitsListUI();
+  }
+
+  checkForCapitalControl() {
+    return null;
   }
 
   // what does he even do? commented out lol

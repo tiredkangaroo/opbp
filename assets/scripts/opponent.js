@@ -5,25 +5,41 @@ class Opponent {
     this.resources = 3000; // starting resources for opponent
     this.unitsEverCreated = 4; // starts with 4 units
   }
-  myUnits(allowGuardUnits = false) {
+  playerIsAs() {
+    return this.playingas === "france" ? "germany" : "france";
+  }
+  myUnits(allowGuardUnits = false, includeUnitsNearOpponentCapital = false) {
+    const opponentCapitalX = capitals[this.playerIsAs()][1];
+    const opponentCapitalY = capitals[this.playerIsAs()][2];
     return units
       .filter(
         (unit) =>
           unit.belongsTo === this.playingas &&
-          (allowGuardUnits || !unit.isGuardUnit),
+          (allowGuardUnits || !unit.isGuardUnit) &&
+          (includeUnitsNearOpponentCapital ||
+            Math.hypot(unit.x - opponentCapitalX, unit.y - opponentCapitalY) >
+              60),
       )
       .sort((a, b) => {
         // random order
         return Math.random() - 0.5;
       });
   }
-  myUnitsNotMoving(allowGuardUnits = false) {
+  myUnitsNotMoving(
+    allowGuardUnits = false,
+    includeUnitsNearOpponentCapital = false,
+  ) {
+    const opponentCapitalX = capitals[this.playerIsAs()][1];
+    const opponentCapitalY = capitals[this.playerIsAs()][2];
     return units
       .filter(
         (unit) =>
           unit.belongsTo === this.playingas &&
           unit.proposedActions.filter((a) => a.type === "move").length === 0 &&
-          (allowGuardUnits || !unit.isGuardUnit),
+          (allowGuardUnits || !unit.isGuardUnit) &&
+          (includeUnitsNearOpponentCapital ||
+            Math.hypot(unit.x - opponentCapitalX, unit.y - opponentCapitalY) >
+              60),
       )
       .sort((a, b) => {
         // random order
@@ -69,7 +85,7 @@ class Opponent {
       );
       for (const unit of unitsNearCapital) {
         // move the closest unit to the capital towards the nearby unit
-        const myUnits = this.myUnitsNotMoving(true);
+        const myUnits = this.myUnitsNotMoving(true, false);
         if (myUnits.length === 0) {
           break; // no units to move
         }
@@ -476,7 +492,9 @@ class Opponent {
   }
   moveTowardsOpponentCapital() {
     // get all units not moving larger than 6000 and move them to the opposing capital
-    const bigUnits = this.myUnitsNotMoving().filter((u) => u.size >= 6000);
+    const bigUnits = this.myUnitsNotMoving(false, true).filter(
+      (u) => u.size >= 6000,
+    );
     if (bigUnits.length === 0) {
       return 0;
     }
@@ -506,14 +524,27 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+var sqrt2 = Math.sqrt(2);
+
 // returns distance to hit or null if no hit
 function rayVsUnitBox(originX, originY, dirX, dirY, maxDist, otherUnit) {
   const flagScale = otherUnit.getFlagScale();
-  const dims = getFlagDimensions(otherUnit.belongsTo, flagScale);
+  // given the otherUnit point, we can calculate the max_radius it's occupation could be extended
+  // so we'll make dims a box around the unit that extends out to the max occupation
+  // the top left corner is (x - r/sqrt(2), y - r/sqrt(2)) and the width and height are rsqrt(2)
 
-  const minX = otherUnit.x - dims.width;
+  const max_radius = otherUnit.calculateMaxRadius();
+  const isInEnemyTerritory =
+    inWhatCountry(otherUnit.x, otherUnit.y) !== otherUnit.belongsTo;
+  const mul = isInEnemyTerritory ? 0.6 : 1.25; // smaller occupation in emeny terriroty i cant type;w
+  const dims = {
+    width: max_radius * sqrt2 * mul,
+    height: max_radius * sqrt2 * mul,
+  };
+
+  const minX = otherUnit.x - max_radius / sqrt2;
   const maxX = otherUnit.x + dims.width;
-  const minY = otherUnit.y - dims.height;
+  const minY = otherUnit.y - max_radius / sqrt2;
   const maxY = otherUnit.y + dims.height;
 
   // slab method for ray vs aabb

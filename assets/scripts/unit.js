@@ -260,6 +260,14 @@ class Unit {
     units = units.filter((u) => u.name !== this.name);
     updateUnitsListUI();
   }
+
+  calculateMaxRadius() {
+    return (
+      Math.min(this.speed, 25) *
+      2.42 *
+      Math.min((this.size - 100) / (30000 - 100), 1)
+    ); // ocupation radius scales with speed and size
+  }
 }
 
 function deployUnit() {
@@ -529,23 +537,31 @@ function updateUnitsListUI() {
 
 function getUnitName(currentNumberOfUnits, unitCountry) {
   // 1st 2nd 3rd 4th 5th
-  const numberStr = (currentNumberOfUnits + 1).toString();
-  const lastDigit = numberStr[numberStr.length - 1];
+  const num = currentNumberOfUnits + 1;
+
+  // god modulo is a genius solution it's probs faster too
+  const lastTwo = num % 100;
+  const last = num % 10;
 
   let numberWithSuffix = "";
-  switch (lastDigit) {
-    case "1":
-      numberWithSuffix = `${numberStr}st`;
-      break;
-    case "2":
-      numberWithSuffix = `${numberStr}nd`;
-      break;
-    case "3":
-      numberWithSuffix = `${numberStr}rd`;
-      break;
-    default:
-      numberWithSuffix = `${numberStr}th`;
+  if (lastTwo >= 11 && lastTwo <= 13) {
+    numberWithSuffix = `${num}th`;
+  } else {
+    switch (last) {
+      case 1:
+        numberWithSuffix = `${num}st`;
+        break;
+      case 2:
+        numberWithSuffix = `${num}nd`;
+        break;
+      case 3:
+        numberWithSuffix = `${num}rd`;
+        break;
+      default:
+        numberWithSuffix = `${num}th`;
+    }
   }
+
   return `${numberWithSuffix} ${unitCountry == "france" ? "French" : "German"} Army Unit`;
 }
 
@@ -665,10 +681,8 @@ function getOccupationPolygonForUnit(unit) {
   }
 
   let points = []; // array of [x, y] points
-  const max_radius =
-    Math.min(unit.speed, 25) *
-    6.7 *
-    Math.min((unit.size - 100) / (30000 - 100), 1);
+  const max_radius = unit.calculateMaxRadius();
+  // const max_radius = unit.speed * 6.7;
   // console.log(
   //   unit.name,
   //   "occupation max radius:",
@@ -682,21 +696,7 @@ function getOccupationPolygonForUnit(unit) {
   const enemies = units.filter((u) => u.belongsTo !== unit.belongsTo);
 
   if (inWhatCountry(unit.x, unit.y) === unit.belongsTo) {
-    // only calculate occupation if in own territory if there are enemies nrby
-    let continueCalculating = false;
-    for (let enemy of enemies) {
-      const dx = enemy.x - unit.x;
-      const dy = enemy.y - unit.y;
-      const distance = Math.hypot(dx, dy);
-      if (distance > max_radius) {
-        continue;
-      }
-      continueCalculating = true;
-      break;
-    }
-    if (!continueCalculating) {
-      return []; // no enemies nearby in own territory, so no occupation area
-    }
+    return [];
   }
 
   for (let deg = 0; deg < 360; deg += 10) {
@@ -775,6 +775,22 @@ function drawOccupation() {
   const germanyPolygons = [];
 
   for (const unit of units) {
+    // used to visualize square occupation
+    // const max_radius = unit.calculateMaxRadius();
+    // const dims = {
+    //   width: max_radius * sqrt2,
+    //   height: max_radius * sqrt2,
+    // };
+
+    // push();
+    // fill(255, 255, 255, 100);
+    // const minX = unit.x - max_radius / sqrt2;
+    // const maxX = unit.x + dims.width;
+    // const minY = unit.y - max_radius / sqrt2;
+    // const maxY = unit.y + dims.height;
+    // rect(...realgrid(minX, minY), ...realgrid(dims.width, dims.height));
+    // pop();
+
     const occupationPolygon = getOccupationPolygonForUnit(unit);
     if (occupationPolygon.length < 4) continue;
     if (unit.belongsTo === "france") {
