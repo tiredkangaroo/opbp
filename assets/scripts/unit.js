@@ -388,7 +388,7 @@ function updateUnitsListUI() {
     unitElements.push(`<div class="unit-item">
       <strong>${unit.name}</strong><br/>
       <p><b>Location</b>: ${currentLocation}</p>
-      <p><b>Size</b>: ${addCommasToNumber(unit.size)} | <b>Speed</b>: ${unit.speed} | <b>Attack</b>: ${unit.attack} | <b>Stamina</b>: ${unit.stamina}</p>
+      <p><b>Size</b>: ${addCommasToNumber(unit.size)} | <b>Speed</b>: ${Math.round(unit.speed)} | <b>Attack</b>: ${Math.round(unit.attack)} | <b>Stamina</b>: ${Math.round(unit.stamina)}</p>
       <div>
       ${unit.proposedActions
         .map((action, actionIdx) => {
@@ -421,6 +421,11 @@ function updateUnitsListUI() {
       return 0;
     }
   });
+  if (unitElements.length === 0) {
+    document.getElementById("units-panel").hidden = true;
+  } else {
+    document.getElementById("units-panel").hidden = false;
+  }
   unitsListDiv.innerHTML = unitElements.join("");
 
   for (let i = 0; i < units.length; i++) {
@@ -889,6 +894,24 @@ function pointInUnitBox(x, y, unit) {
     flagDimensions.height,
   );
 }
+function pointInPolygon(x, y, polygon) {
+  if (polygon.length < 3) return false;
+  let inside = false;
+  // ray-casting (ty s.o)
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0],
+      yi = polygon[i][1];
+    const xj = polygon[j][0],
+      yj = polygon[j][1];
+
+    const intersect =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+
+  return inside;
+}
+
 function addCommasToNumber(num) {
   num = num.toString();
   for (let i = num.length - 3; i > 0; i -= 3) {

@@ -15,11 +15,11 @@ class Rounds {
     this.conflicts = [];
     this.historicalConflicts = []; // list of all conflict that have occurred
 
-    // a capital and must be held uncontested for 3 rounds to win
     this.capitalHeld = {
-      france: 0,
-      germany: 0,
+      player: 0,
+      op: 0,
     };
+    this.capitalThreshold = 10; // 10 rounds of control of capital to win
   }
 
   advanceRound() {
@@ -77,6 +77,83 @@ class Rounds {
       this.roundNumber;
     this.watchRound();
     updateUnitsListUI();
+
+    drawOccupation(); // quick draw occupation frame so we have polygons ready to check
+    let isPlayerCapitalHeld = false;
+    let isOpponentCapitalHeld = false;
+    const playerCapitalX = capitals[playingAs][1];
+    const playerCapitalY = capitals[playingAs][2];
+    const opponentCapitalX = capitals[opponent.playingas][1];
+    const opponentCapitalY = capitals[opponent.playingas][2];
+    for (const unit of units) {
+      if (
+        unit.cachedOccupationPolygon == null ||
+        unit.cachedOccupationPolygon.length < 4
+      ) {
+        continue; // no business here
+      }
+      if (
+        unit.belongsTo === playingAs &&
+        pointInPolygon(
+          opponentCapitalX,
+          opponentCapitalY,
+          unit.cachedOccupationPolygon,
+        )
+      ) {
+        isOpponentCapitalHeld = true;
+      } else if (
+        unit.belongsTo === opponent.playingas &&
+        pointInPolygon(
+          playerCapitalX,
+          playerCapitalY,
+          unit.cachedOccupationPolygon,
+        )
+      ) {
+        isPlayerCapitalHeld = true;
+      }
+    }
+    capitalsUnderForeignOccupation = [];
+    if (isPlayerCapitalHeld) {
+      capitalsUnderForeignOccupation.push(playingAs);
+      this.capitalHeld.player += 1;
+    } else {
+      this.capitalHeld.player = 0;
+    }
+    if (isOpponentCapitalHeld) {
+      capitalsUnderForeignOccupation.push(opponent.playingas);
+      this.capitalHeld.op += 1;
+    } else {
+      this.capitalHeld.op = 0;
+    }
+    if (this.capitalHeld.player >= this.capitalThreshold) {
+      // player lost bc opponent held capital for 10 rounds
+      playingState = "lost-capital";
+      units = [];
+    }
+    if (this.capitalHeld.op >= this.capitalThreshold) {
+      // player won bc they held opponent capital
+      playingState = "won-capital";
+      units = [];
+    }
+    const playingAsCasualties =
+      playingAs === "france" ? french_casualties : german_casualties;
+    const opponentCasualties =
+      playingAs === "france" ? german_casualties : french_casualties;
+    if (
+      playingAsCasualties > 1_000_000 &&
+      opponentCasualties < playingAsCasualties / 2
+    ) {
+      // if u have more than a mil casualties and opponent has less than half as many casualties as u, u lose
+      playingState = "lost-casualties";
+      units = [];
+    } else if (
+      opponentCasualties > 1_000_000 &&
+      playingAsCasualties < opponentCasualties / 2
+    ) {
+      // vice versa
+      playingState = "won-casualties";
+      units = [];
+    }
   }
 
   wgAdd() {

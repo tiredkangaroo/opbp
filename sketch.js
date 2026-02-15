@@ -9,11 +9,14 @@ let playingAs = "france";
 
 let debug = new URLSearchParams(window.location.search).get("debug") === "true";
 
+let playingState = "playing"; // can be "playing", "won-capital", "lost-capital", "won-casualties", "lost-casualties"
+
 // capitals in virtual grid coordinates
 const capitals = {
   france: ["Paris", 544, 401],
   germany: ["Berlin", 1029, 160],
 };
+let capitalsUnderForeignOccupation = [];
 
 const ordinalNumerals = [
   // i just learned that's what they're called
@@ -103,12 +106,18 @@ function draw() {
   }
   drawCountries();
   drawCountryNames();
+  drawOccupation();
+
+  if (playingState !== "playing") {
+    drawEndScreen();
+    return;
+  }
+
+  units.forEach((unit) => unit.draw());
   drawCapitals();
   // drawInvasionLine("france");
   // drawInvasionLine("germany");
-  drawOccupation();
   drawResources();
-  units.forEach((unit) => unit.draw());
   rounds.watchRound();
   mouseObj.draw();
   text(
@@ -116,6 +125,76 @@ function draw() {
     1200,
     20,
   );
+}
+
+function drawEndScreen() {
+  document.getElementById("units-panel").hidden = true;
+  document.getElementById("rounds-panel").hidden = true;
+  document.getElementById("deploy-unit-panel").hidden = true;
+
+  push();
+  // create large box in center
+  fill("#bfb0ae");
+  stroke(0);
+  strokeWeight(3);
+  rectMode(CENTER);
+  rect(width / 2, height / 2, 800, 200);
+
+  // text settings
+  fill(0);
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+
+  let t = "";
+  textSize(40);
+  mouseObj.draw();
+  switch (playingState) {
+    case "won-capital":
+      text("You won :)", width / 2, height / 2 - 67);
+      t = `you captured ${capitalOf(opponent.playingas)}, securing victory!`;
+      break;
+    case "lost-capital":
+      text("You lost :(", width / 2, height / 2 - 67);
+      t = `${capitalOf(playingAs)} fell to ${countryName(opponent.playingas)}. Better luck next time!`;
+      break;
+    case "won-casualties":
+      text("You won :)", width / 2, height / 2 - 67);
+      t = `you won by inflicting significantly greater casualties, forcing ${countryName(opponent.playingas)} to surrender. War is brutal.`;
+      break;
+    case "lost-casualties":
+      text("You lost :(", width / 2, height + 20);
+      t = `you lost by suffering significantly greater casualties and your country was forced to surrender. War is brutal.`;
+      break;
+  }
+  textSize(24);
+  text(t, width / 2, height / 2 + 20);
+  pop();
+}
+
+function countryName(country) {
+  switch (country) {
+    case "france":
+      return "France";
+    case "germany":
+      return "Germany";
+    case "paris":
+      return "France";
+    case "berlin":
+      return "Germany";
+    default:
+      return country;
+  }
+}
+function capitalOf(country) {
+  switch (country) {
+    case "france":
+      return "Paris";
+    case "germany":
+      return "Berlin";
+    default:
+      return "Unknown Capital";
+  }
 }
 
 function drawCountryNames() {
@@ -195,10 +274,41 @@ function drawCapitals() {
   const [paris, parisX, parisY] = capitals.france;
   ellipse(...vgrid(parisX, parisY), 8, 8);
   text(paris, ...vgrid(parisX, parisY - 15));
+  if (capitalsUnderForeignOccupation.includes("france")) {
+    // draw a light red circle with dark borders and a big red ! in the middle of the circle
+    // to indiciate that the capital is somewhat under foreign occupation
+    console.log("drawing occupation circle for france");
+    push();
+    fill("#fab1aa");
+    stroke(255, 0, 0);
+    strokeWeight(2);
+    ellipse(...vgrid(parisX, parisY), 30, 30);
+    fill(255, 0, 0);
+    noStroke();
+    textSize(20);
+    textStyle(BOLD);
+    textAlign(CENTER, CENTER);
+    text("!", ...vgrid(parisX, parisY));
+    pop();
+  }
 
   // german capital
   const [berlin, berlinX, berlinY] = capitals.germany;
   ellipse(...vgrid(berlinX, berlinY), 8, 8);
   text(berlin, ...vgrid(berlinX, berlinY - 15));
+  if (capitalsUnderForeignOccupation.includes("germany")) {
+    console.log("drawing occupation circle for germany");
+    push();
+    fill("#fab1aa");
+    stroke(255, 0, 0);
+    strokeWeight(2);
+    ellipse(...vgrid(berlinX, berlinY), 30, 30);
+    fill(255, 0, 0);
+    noStroke();
+    textSize(20);
+    textStyle(BOLD);
+    textAlign(CENTER, CENTER);
+    text("!", ...vgrid(berlinX, berlinY));
+  }
   pop();
 }
