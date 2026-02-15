@@ -538,8 +538,62 @@ class Opponent {
         targetX: unitToMoveTo.x,
         targetY: unitToMoveTo.y,
       });
+      return 1;
     }
-    // we should otherwise deploy a new unit to move towards it
+
+    if (getUnitDeployCost(6700, 14, 5, 5) >= this.resources) {
+      return 0;
+    }
+    const germanPointsNearFrenchCapital = [
+      [788, 458],
+      [736, 346],
+      [731, 314],
+      [739, 347],
+      [792, 433],
+    ];
+    if (this.playingas === "germany") {
+      const pt =
+        germanPointsNearFrenchCapital[
+          randomInt(0, germanPointsNearFrenchCapital.length - 1)
+        ];
+      const newUnit = new Unit(
+        pt[0],
+        pt[1],
+        getUnitName(this.unitsEverCreated, this.playingas),
+        1,
+        6700,
+        14,
+        5,
+        5,
+        this.playingas,
+      );
+      units.push(newUnit);
+      this.unitsEverCreated++;
+      this.addResources(-getUnitDeployCost(6700, 14, 5, 5));
+      console.log(
+        "deployed new unit near french capital for opponent:",
+        newUnit,
+      );
+
+      // move unit towards the target unit
+      if (
+        calculateMovementCost(
+          newUnit,
+          Math.hypot(newUnit.x - unitToMoveTo.x, newUnit.y - unitToMoveTo.y),
+        ) > this.resources
+      ) {
+        console.log("opponent cannot move new unit towards target unit");
+        return 1; // still deployed a unit so counts
+      }
+      newUnit.addProposedAction({
+        type: "move",
+        targetX: unitToMoveTo.x,
+        targetY: unitToMoveTo.y,
+      });
+    } else {
+      throw "opponent is france (not implemented)";
+    }
+
     return 1;
   }
   moveTowardsOpponentCapital() {
