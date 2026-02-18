@@ -149,19 +149,19 @@ function drawEndScreen() {
   mouseObj.draw();
   switch (playingState) {
     case "won-capital":
-      text("You won :)", width / 2, height / 2 - 67);
+      text("You won :)", width / 2, height / 2 - 51);
       t = `you captured ${capitalOf(opponent.playingas)}, securing victory!`;
       break;
     case "lost-capital":
-      text("You lost :(", width / 2, height / 2 - 67);
+      text("You lost :(", width / 2, height / 2 - 51);
       t = `${capitalOf(playingAs)} fell to ${countryName(opponent.playingas)}. Better luck next time!`;
       break;
     case "won-casualties":
-      text("You won :)", width / 2, height / 2 - 67);
+      text("You won :)", width / 2, height / 2 - 51);
       t = `you won by inflicting significantly greater casualties, forcing ${countryName(opponent.playingas)} to surrender. War is brutal.`;
       break;
     case "lost-casualties":
-      text("You lost :(", width / 2, height + 20);
+      text("You lost :(", width / 2, height / 2 - 51);
       t = `you lost by suffering significantly greater casualties and your country was forced to surrender. War is brutal.`;
       break;
   }

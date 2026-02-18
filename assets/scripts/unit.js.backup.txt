@@ -75,9 +75,7 @@ class Unit {
 
       // scroll the Your Units box to the unit info if hovering over the unit
       if (this.belongsTo === playingAs) {
-        const unitIndex = units
-          .filter((u) => u.belongsTo === playingAs)
-          .findIndex((u) => u.name === this.name);
+        const unitIndex = units.findIndex((u) => u.name === this.name);
         const unitElement =
           document.getElementsByClassName("unit-item")[unitIndex];
         if (unitElement) {
@@ -744,8 +742,6 @@ function getOccupationPolygonForUnit(unit) {
     let bestDistance = max_radius;
 
     for (const otherUnit of enemies) {
-      if (otherUnit.belongsTo === unit.belongsTo) continue; // skip own units (including self)
-
       const dx = otherUnit.x - unit.x;
       const dy = otherUnit.y - unit.y;
 
@@ -802,15 +798,379 @@ function drawOccupation() {
   if (rounds.inProgress) {
     return;
   }
-  drawFrontline();
+  const francePolygons = [];
+  const germanyPolygons = [];
+  let franceOccupationUnion = null;
+  let germanyOccupationUnion = null;
+
+  for (const unit of units) {
+    // used to visualize square occupation
+    // const max_radius = unit.calculateMaxRadius();
+    // const dims = {
+    //   width: max_radius * sqrt2,
+    //   height: max_radius * sqrt2,
+    // };
+
+    // push();
+    // fill(255, 255, 255, 100);
+    // const minX = unit.x - max_radius / sqrt2;
+    // const maxX = unit.x + dims.width;
+    // const minY = unit.y - max_radius / sqrt2;
+    // const maxY = unit.y + dims.height;
+    // rect(...realgrid(minX, minY), ...realgrid(dims.width, dims.height));
+    // pop();
+
+    const occupationPolygon = getOccupationPolygonForUnit(unit);
+    if (occupationPolygon.length < 4) {
+      continue;
+    }
+    if (unit.belongsTo === "france") {
+      francePolygons.push(occupationPolygon);
+      if (inWhatCountry(unit.x, unit.y) === "germany") {
+        if (!franceOccupationUnion) {
+          franceOccupationUnion = turfPolyFromPoints(occupationPolygon);
+        } else {
+          franceOccupationUnion = turf.union(
+            franceOccupationUnion,
+            turfPolyFromPoints(occupationPolygon),
+          );
+        }
+      }
+    } else {
+      germanyPolygons.push(occupationPolygon);
+      if (inWhatCountry(unit.x, unit.y) === "france") {
+        if (!germanyOccupationUnion) {
+          germanyOccupationUnion = turfPolyFromPoints(occupationPolygon);
+        } else {
+          germanyOccupationUnion = turf.union(
+            germanyOccupationUnion,
+            turfPolyFromPoints(occupationPolygon),
+          );
+        }
+      }
+    }
+  }
+  // console.log("france occupation union:", franceOccupationUnion);
+  // console.log("germany occupation union:", germanyOccupationUnion);
+
+  const franceEffective = findWidestBridge(
+    franceData,
+    franceOccupationUnion,
+    germanyOccupationUnion,
+  );
+
+  const germanyEffective = findWidestBridge(
+    germanyData,
+    germanyOccupationUnion,
+    franceOccupationUnion,
+  );
+
+  // console.log("france effective occupation:", franceEffective);
+  // console.log("germany effective occupation:", germanyEffective);
+
+  if (!franceEffective || !germanyEffective) {
+    return;
+  }
+
+  // const franceClipped = turf.difference(franceEffective, germanyEffective);
+  // const germanyClipped = turf.difference(germanyEffective, franceEffective);
+  // if (!franceClipped || !germanyClipped) {
+  //   return;
+  // }
+  // fill(255, 0, 0, 100);
+  // drawFeature(franceClipped);
+  // fill(0, 0, 255, 100);
+  // drawFeature(germanyEffective);
+
+  // let franceBorder = turf.polygonToLine(franceClipped);
+  // let germanyBorder = turf.polygonToLine(germanyClipped);
+  // console.log("france border:", franceBorder);
+  // console.log("germany border:", germanyBorder);
+
+  const contested = turf.intersect(franceEffective, germanyEffective);
+  console.log(contested);
+  if (contested) {
+    const line = turf.polygonToLine(contested);
+
+    // drw line to visualize frontline
+    drawFrontLine(line);
+  }
+
+  // drawMergedPolygons(francePolygons, "rgba(0,30,164,0.4)");
+  // drawMergedPolygons(germanyPolygons, "rgba(103, 0, 0, 0.76)");
+  // drawContestedZones(francePolygons, germanyPolygons);
 }
 
-function turfPolyFromPoints(polygon) {
-  if (polygon.length < 4) return null;
-  if (polygon[0] !== polygon[polygon.length - 1]) {
+function findWidestBridge(
+  homeTerritory,
+  occupationUnion,
+  enemyOccupationUnion,
+) {
+  if (!occupationUnion) return homeTerritory;
+
+  // Get all disconnected components of the occupation
+  const occupationComponents = separateDisconnectedPolygons(occupationUnion);
+
+  let result = homeTerritory;
+
+  for (const component of occupationComponents) {
+    // Check if this component is already connected to home territory
+    if (turf.booleanIntersects(component, homeTerritory)) {
+      result = turf.union(result, component);
+      continue;
+    }
+
+    // Find the widest corridor between this component and current territory
+    const bridge = findWidestCorridor(result, component, enemyOccupationUnion);
+
+    if (bridge) {
+      result = turf.union(result, bridge);
+      result = turf.union(result, component);
+    }
+  }
+
+  return result;
+}
+
+function separateDisconnectedPolygons(multiPolygon) {
+  // Handle both Polygon and MultiPolygon types
+  if (multiPolygon.geometry.type === "Polygon") {
+    return [multiPolygon];
+  }
+
+  return multiPolygon.geometry.coordinates.map((coords) =>
+    turf.polygon(coords),
+  );
+}
+
+function findWidestCorridor(fromPoly, toPoly, avoidPoly) {
+  // Find closest points between the two polygons
+  const fromLine = turf.polygonToLine(fromPoly);
+  const toLine = turf.polygonToLine(toPoly);
+
+  let bestBridge = null;
+  let bestWidth = 0;
+
+  // Sample points along both polygon edges
+  const fromPoints = samplePointsAlongLine(fromLine, 20);
+  const toPoints = samplePointsAlongLine(toLine, 20);
+
+  for (const p1 of fromPoints) {
+    for (const p2 of toPoints) {
+      // Create a corridor between these two points
+      const corridor = createCorridor(p1, p2, avoidPoly);
+
+      if (corridor && corridor.width > bestWidth) {
+        bestWidth = corridor.width;
+        bestBridge = corridor.polygon;
+      }
+    }
+  }
+
+  return bestBridge;
+}
+
+function samplePointsAlongLine(line, numSamples) {
+  const points = [];
+  const length = turf.length(line, { units: "kilometers" });
+  for (let i = 1; i <= numSamples; i++) {
+    const distance = (i / numSamples) * length;
+    console.log(line, distance);
+    const point = turf.along(line, distance, { units: "kilometers" });
+    points.push(point);
+  }
+
+  return points;
+}
+
+function createCorridor(startPoint, endPoint, avoidPoly) {
+  // Calculate perpendicular direction for width expansion
+  const dx =
+    endPoint.geometry.coordinates[0] - startPoint.geometry.coordinates[0];
+  const dy =
+    endPoint.geometry.coordinates[1] - startPoint.geometry.coordinates[1];
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  const perpX = -dy / dist;
+  const perpY = dx / dist;
+
+  // Binary search for maximum width
+  let maxWidth = 0;
+  let testWidth = dist * 2; // Start with generous width
+
+  for (let iter = 0; iter < 10; iter++) {
+    const testCorridor = createRectangleBetweenPoints(
+      startPoint,
+      endPoint,
+      testWidth,
+      perpX,
+      perpY,
+    );
+
+    const intersects =
+      avoidPoly && turf.booleanIntersects(testCorridor, avoidPoly);
+
+    if (!intersects) {
+      maxWidth = testWidth;
+      testWidth *= 1.5;
+    } else {
+      testWidth = (maxWidth + testWidth) / 2;
+    }
+  }
+
+  if (maxWidth === 0) return null;
+
+  return {
+    width: maxWidth,
+    polygon: createRectangleBetweenPoints(
+      startPoint,
+      endPoint,
+      maxWidth,
+      perpX,
+      perpY,
+    ),
+  };
+}
+
+function createRectangleBetweenPoints(p1, p2, width, perpX, perpY) {
+  const [x1, y1] = p1.geometry.coordinates;
+  const [x2, y2] = p2.geometry.coordinates;
+  const hw = width / 2; // half width
+
+  const corners = [
+    [x1 + perpX * hw, y1 + perpY * hw],
+    [x2 + perpX * hw, y2 + perpY * hw],
+    [x2 - perpX * hw, y2 - perpY * hw],
+    [x1 - perpX * hw, y1 - perpY * hw],
+    [x1 + perpX * hw, y1 + perpY * hw], // close the polygon
+  ];
+
+  return turf.polygon([corners]);
+}
+
+function connectWithBridge(base, occupationUnion, bridgeWidthKm = 12) {
+  if (!occupationUnion) return base;
+
+  const baseLine = turf.polygonToLine(base);
+  const occLine = turf.polygonToLine(occupationUnion);
+
+  const nearest = turf.nearestPointOnLine(
+    baseLine,
+    turf.centroid(occupationUnion),
+  );
+
+  const nearestReverse = turf.nearestPointOnLine(occLine, turf.centroid(base));
+
+  const from = nearest.geometry.coordinates;
+  const to = nearestReverse.geometry.coordinates;
+
+  const bridgeLine = turf.lineString([from, to]);
+
+  // what is a kilometer 🇺🇸🇺🇸🦅? welcome to the pax americana baby!!
+  const bridge = turf.buffer(bridgeLine, bridgeWidthKm, {
+    units: "kilometers",
+  });
+
+  // el onion everything together
+  let merged = turf.union(base, occupationUnion);
+  merged = turf.union(merged, bridge);
+
+  return merged;
+}
+
+function drawFrontLine(lineGeoJson) {
+  if (!lineGeoJson) return;
+
+  if (lineGeoJson.type === "FeatureCollection") {
+    // if it's a collection, call recursively on each feature and return
+    for (const feature of lineGeoJson.features) {
+      drawFrontLine(feature);
+    }
+    return;
+  }
+  const coords = lineGeoJson.geometry.coordinates;
+
+  stroke(0);
+  strokeWeight(3);
+  noFill();
+
+  if (lineGeoJson.geometry.type === "LineString") {
+    beginShape();
+    for (const [lon, lat] of coords) {
+      const [x, y] = project(lon, lat);
+
+      vertex(x * 1.15 - 110, y * 1.15 - 50);
+    }
+    endShape();
+  }
+
+  if (lineGeoJson.geometry.type === "MultiLineString") {
+    for (const segment of coords) {
+      beginShape();
+      for (const [lon, lat] of segment) {
+        const [x, y] = project(lon, lat);
+
+        vertex(x * 1.15 - 110, y * 1.15 - 50);
+      }
+      endShape();
+    }
+  }
+}
+
+// regular for now, but it should merge polygons properly later
+function drawMergedPolygons(polygons, fillStyle) {
+  push();
+  fill(fillStyle);
+  noStroke();
+  for (const polygon of polygons) {
+    beginShape();
+    for (const [px, py] of polygon) {
+      vertex(...realgrid(px, py));
+    }
+    endShape(CLOSE);
+  }
+  pop();
+}
+
+function turfPolyFromPoints(points) {
+  const coords = points.map(([px, py]) => {
+    return unproject(px, py);
+  });
+  if (
+    coords[0][0] !== coords[coords.length - 1][0] ||
+    coords[0][1] !== coords[coords.length - 1][1]
+  ) {
+    coords.push(coords[0]);
+  }
+  return turf.polygon([coords]);
+}
+
+function drawContestedZones(francePolygons, germanyPolygons) {
+  if (francePolygons.length === 0 || germanyPolygons.length === 0) {
+    return; // no contested zones possible
+  }
+  // close each polygon by repeating first point at end
+  for (const polygon of francePolygons) {
     polygon.push(polygon[0]);
   }
-  return turf.polygon([polygon]);
+  for (const polygon of germanyPolygons) {
+    polygon.push(polygon[0]);
+  }
+
+  const intersect = turf.intersect(
+    turf.polygon(francePolygons),
+    turf.polygon(germanyPolygons),
+  );
+  if (!intersect) return; // no contested zones
+
+  beginShape();
+  fill(255, 255, 255, 150);
+  for (const coords of intersect.geometry.coordinates) {
+    for (const [px, py] of coords) {
+      vertex(...realgrid(px, py));
+    }
+  }
+  endShape(CLOSE);
 }
 
 function pointInUnitBox(x, y, unit) {
@@ -825,18 +1185,21 @@ function pointInUnitBox(x, y, unit) {
     flagDimensions.height,
   );
 }
-
-function pointInPolygon(px, py, poly) {
+function pointInPolygon(x, y, polygon) {
+  if (polygon.length < 3) return false;
   let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const xi = poly[i][0],
-      yi = poly[i][1];
-    const xj = poly[j][0],
-      yj = poly[j][1];
-    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) {
-      inside = !inside;
-    }
+  // ray-casting (ty s.o)
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0],
+      yi = polygon[i][1];
+    const xj = polygon[j][0],
+      yj = polygon[j][1];
+
+    const intersect =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
   }
+
   return inside;
 }
 
@@ -847,3 +1210,4 @@ function addCommasToNumber(num) {
   }
   return num;
 }
+
