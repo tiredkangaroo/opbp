@@ -1,4 +1,4 @@
-function drawFrontline() {
+function calculateFrontline() {
   // we're scanning up to down and we're going to find the x coordinate of the frontline for each y coordinate
   // this will be independent of occupation
   // also if an x coordinate is more left than the border bc the unit that makes that happen belongs to france
@@ -18,40 +18,147 @@ function drawFrontline() {
     unitsByY[y].push(unit);
   }
 
-  // for each y coordinate, find the frontline x coordinate (resolve ties like i yapped about above)
-  const frontlinePoints = [];
+  const frontlineYs = {};
+  for (let i = 0; i < vgrid_height; i++) {
+    let unitsAtY = unitsByY[i];
+    if (!unitsAtY) {
+      continue;
+    }
+    const bx = getBorderXAtY(i);
+    // find the rightmost france unit + influence and leftmost germany unit - influence
+    let rightmostFranceUnit = null;
+    let leftmostGermanyUnit = null;
+
+    for (const unit of unitsAtY) {
+      const flagScale = unit.getFlagScale();
+      const dims = getFlagDimensions(unit.belongsTo, flagScale);
+      const r = unit.calculateMaxRadius() / 10;
+      const influence = dims.width + r + 10; // padding of 10
+      if (unit.belongsTo === "france") {
+        if (!rightmostFranceUnit || unit.x + influence > rightmostFranceUnit.x) {
+          rightmostFranceUnit = unit;
+        }
+      } else {
+        if (!leftmostGermanyUnit || unit.x - influence < leftmostGermanyUnit.x) {
+          leftmostGermanyUnit = unit;
+        }
+      }
+    }
+    if (rightmostFranceUnit && leftmostGermanyUnit) {
+      // both exist, so we're in a conflict zone, just making stuff up atp
+      frontlineYs[i] = (rightmostFranceUnit.x + leftmostGermanyUnit.x) / 2;
+    } else if (rightmostFranceUnit) {
+      // only france exists
+      if (bx && bx > rightmostFranceUnit.x) {
+        // but the frontline is past france, use border
+        frontlineYs[i] = bx;
+      } else {
+        frontlineYs[i] = rightmostFranceUnit.x;
+        // use our influence
+        const flagScale = rightmostFranceUnit.getFlagScale();
+        const dims = getFlagDimensions("france", flagScale);
+        const r = rightmostFranceUnit.calculateMaxRadius() / 10;
+        for (let j = i - 1; j >= i - r && j >= 0; j--) {
+          frontlineYs[j] = frontlineYs[i];
+        }
+        for (let j = i + 1; j <= i + dims.height + r && j < vgrid_height; j++) {
+          frontlineYs[j] = frontlineYs[i];
+        }
+      }
+    } else if (leftmostGermanyUnit) {
+      // only germany exists
+      if (bx && bx < leftmostGermanyUnit.x) {
+        // frontline is left of germany, use border
+        frontlineYs[i] = bx;
+      } else {
+        frontlineYs[i] = leftmostGermanyUnit.x;
+        // use german influence
+        const flagScale = leftmostGermanyUnit.getFlagScale();
+        const dims = getFlagDimensions("germany", flagScale);
+        const r = leftmostGermanyUnit.calculateMaxRadius();
+        for (let j = i - 1; j >= i - r && j >= 0; j--) {
+          frontlineYs[j] = frontlineYs[i];
+        }
+        for (let j = i + 1; j <= i + dims.height + r && j < vgrid_height; j++) {
+          frontlineYs[j] = frontlineYs[i];
+        }
+      }
+    } else {
+      // neither exists, so use border x value
+      frontlineYs[i] = bx;
+    }
+  }
+  return frontlineYs;
+}
+
+let frontlineYs = null;
+let frontlineYsRoundNumber = -1;
+function drawFrontline() {
+  if (frontlineYs == null || frontlineYsRoundNumber !== rounds.roundNumber) {
+    frontlineYs = calculateFrontline();
+    frontlineYsRoundNumber = rounds.roundNumber;
+  } else {
+    console.log("using cached frontline");
+  }
+  push();
+  stroke("#000000");
+  strokeWeight(4);
+  noFill();
+
+  beginShape();
+
+  for (i = 0; i < vgrid_height; i++) {
+    let p = null;
+    if (frontlineYs[i]) {
+      p = [frontlineYs[i], i];
+    } else {
+      p = [getBorderXAtY(i), i];
+    }
+    if (pointInMap(p[0], p[1])) {
+      vertex(...vgrid(...p));
+    }
+  }
+  endShape();
+  pop();
 }
 
 function getBorderXAtY(y) {
-  if (y <= 350 || y >= 466) {
-    return undefined; // there is no border here
-  }
-  // segment topmost of border to peak rightmost of border
-  if (y <= 383) {
-    const x1 = 732;
-    const x2 = 810;
-    const y1 = 350;
-    const y2 = 383;
-
-    const segment1DeltaX = x2 - x1;
-    const segment1DeltaY = y2 - y1;
-
-    // what portion of the way down the segment the y value is
-    const portion = (y - y1) / segment1DeltaY;
-
-    // the x value is the same portion of the way across the segment
-    return x1 + portion * segment1DeltaX;
-  }
-  const x1 = 810;
-  const x2 = 785;
-  const y1 = 383;
-  const y2 = 466;
-  const segment2DeltaX = x2 - x1;
-  const segment2DeltaY = y2 - y1;
-
-  // what portion of the way down the segment the y value is
-  const portion = (y - y1) / segment2DeltaY;
-
-  // and apply that to x1 (which will be left of x1 since x1 is peak right)
-  return x1 + portion * segment2DeltaX;
+  // y = mx + b
+  // y - b = mx
+  // (y - b) / m = x
+  // y = .64x - 106
+  // (y + 106) / .64 = x
+  return (y + 106) / 0.64;
 }
+
+// function getBorderXAtY(y) {
+//   // segment topmost of border to peak rightmost of border
+//   if (y >= 254 && y <= 383) {
+//     const x1 = 565;
+//     const x2 = 810;
+//     const y1 = 254;
+//     const y2 = 383;
+
+//     const segment1DeltaX = x2 - x1;
+//     const segment1DeltaY = y2 - y1;
+
+//     // what portion of the way down the segment the y value is
+//     const portion = (y - y1) / segment1DeltaY;
+
+//     // the x value is the same portion of the way across the segment
+//     return x1 + portion * segment1DeltaX;
+//   } else if (y >= 383 && y <= 466) {
+//     const x1 = 810;
+//     const x2 = 785;
+//     const y1 = 383;
+//     const y2 = 466;
+//     const segment2DeltaX = x2 - x1;
+//     const segment2DeltaY = y2 - y1;
+
+//     // what portion of the way down the segment the y value is
+//     const portion = (y - y1) / segment2DeltaY;
+
+//     // and apply that to x1 (which will be left of x1 since x1 is peak right)
+//     return x1 + portion * segment2DeltaX;
+//   }
+// }
