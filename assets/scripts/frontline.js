@@ -53,11 +53,11 @@ function calculateFrontline() {
         // but the frontline is past france, use border
         frontlineYs[i] = bx;
       } else {
-        frontlineYs[i] = rightmostFranceUnit.x;
-        // use our influence
         const flagScale = rightmostFranceUnit.getFlagScale();
         const dims = getFlagDimensions("france", flagScale);
         const r = rightmostFranceUnit.calculateMaxRadius() / 10;
+        frontlineYs[i] = rightmostFranceUnit.x + dims.width + r;
+        // use our influence
         for (let j = i - 1; j >= i - r && j >= 0; j--) {
           frontlineYs[j] = frontlineYs[i];
         }
@@ -71,11 +71,11 @@ function calculateFrontline() {
         // frontline is left of germany, use border
         frontlineYs[i] = bx;
       } else {
-        frontlineYs[i] = leftmostGermanyUnit.x;
-        // use german influence
         const flagScale = leftmostGermanyUnit.getFlagScale();
         const dims = getFlagDimensions("germany", flagScale);
         const r = leftmostGermanyUnit.calculateMaxRadius();
+        frontlineYs[i] = leftmostGermanyUnit.x - dims.width - r;
+        // use german influence
         for (let j = i - 1; j >= i - r && j >= 0; j--) {
           frontlineYs[j] = frontlineYs[i];
         }
@@ -88,7 +88,7 @@ function calculateFrontline() {
       frontlineYs[i] = bx;
     }
   }
-  return frontlineYs;
+  return smoothFrontline(frontlineYs, 100);
 }
 
 let frontlineYs = null;
@@ -102,21 +102,16 @@ function drawFrontline() {
   }
   push();
   stroke("#000000");
-  strokeWeight(4);
+  strokeWeight(8);
   noFill();
 
   beginShape();
+  for (let i = 0; i < vgrid_height; i += 20) {
+    let x = frontlineYs[i] ?? getBorderXAtY(i);
+    // if (!pointInMap(x, i)) continue;
 
-  for (i = 0; i < vgrid_height; i++) {
-    let p = null;
-    if (frontlineYs[i]) {
-      p = [frontlineYs[i], i];
-    } else {
-      p = [getBorderXAtY(i), i];
-    }
-    if (pointInMap(p[0], p[1])) {
-      vertex(...vgrid(...p));
-    }
+    const [vx, vy] = vgrid(x, i);
+    vertex(vx, vy);
   }
   endShape();
   pop();
@@ -129,6 +124,39 @@ function getBorderXAtY(y) {
   // y = .64x - 106
   // (y + 106) / .64 = x
   return (y + 106) / 0.64;
+}
+
+function smoothFrontline(frontlineYs, radius = 5) {
+  const smoothed = {};
+
+  for (let y = 0; y < vgrid_height; y++) {
+    let sum = 0;
+    let count = 0;
+
+    for (let dy = -radius; dy <= radius; dy++) {
+      const ny = y + dy;
+      if (ny >= 0 && ny < vgrid_height && frontlineYs[ny] !== undefined) {
+        sum += frontlineYs[ny];
+        count++;
+      }
+    }
+
+    if (count > 0) {
+      smoothed[y] = sum / count;
+    }
+  }
+
+  return smoothed;
+}
+
+function isInFrontOfFrontline(px, py, forWho) {
+  const frontlineX = frontlineYs[Math.round(py)] ?? getBorderXAtY(py);
+
+  if (forWho === "france") {
+    return px > frontlineX; // france advances eastward (right)
+  } else {
+    return px < frontlineX; // germany advances westward (left)
+  }
 }
 
 // function getBorderXAtY(y) {

@@ -18,6 +18,8 @@ const capitals = {
 };
 let capitalsUnderForeignOccupation = [];
 
+const speedPixelConversion = 5.8;
+
 const ordinalNumerals = [
   // i just learned that's what they're called
   "First",
@@ -79,19 +81,7 @@ function setup() {
 
       const x = capitalX + protectionRadius * Math.sin(angleRad) - w1 / 2;
       const y = capitalY + protectionRadius * Math.cos(angleRad) - h1 / 2;
-      units.push(
-        new Unit(
-          x,
-          y,
-          `${ordinalNumerals[i]} ${capitalName} Guard`,
-          10,
-          4100,
-          20,
-          10,
-          5,
-          country,
-        ),
-      );
+      units.push(new Unit(x, y, `${ordinalNumerals[i]} ${capitalName} Guard`, 10, 4100, 20, 10, 5, country));
     }
   }
 }
@@ -108,21 +98,15 @@ function draw() {
   drawCountryNames();
   drawOccupation();
 
-  if (playingState !== "playing") {
-    drawEndScreen();
-    return;
-  }
-
   units.forEach((unit) => unit.draw());
   drawCapitals();
   drawResources();
   rounds.watchRound();
   mouseObj.draw();
-  text(
-    rounds.inProgress ? "Round in progress" : "No round in progress",
-    1200,
-    20,
-  );
+  text(rounds.inProgress ? "Round in progress" : "No round in progress", 1200, 20);
+  if (playingState !== "playing") {
+    drawEndScreen();
+  }
 }
 
 function drawEndScreen() {
@@ -136,7 +120,7 @@ function drawEndScreen() {
   stroke(0);
   strokeWeight(3);
   rectMode(CENTER);
-  rect(width / 2, height / 2, 800, 200);
+  rect(width / 2, height, 800, 200);
 
   // text settings
   fill(0);
@@ -149,24 +133,20 @@ function drawEndScreen() {
   mouseObj.draw();
   switch (playingState) {
     case "won-capital":
-      text("You won :)", width / 2, height / 2 - 51);
-      t = `you captured ${capitalOf(opponent.playingas)}, securing victory!`;
+      t = `you won! you captured ${capitalOf(opponent.playingas)}`;
       break;
     case "lost-capital":
-      text("You lost :(", width / 2, height / 2 - 51);
-      t = `${capitalOf(playingAs)} fell to ${countryName(opponent.playingas)}. Better luck next time!`;
+      t = `you lost! ${capitalOf(playingAs)} fell to ${countryName(opponent.playingas)}.`;
       break;
     case "won-casualties":
-      text("You won :)", width / 2, height / 2 - 51);
-      t = `you won by inflicting significantly greater casualties, forcing ${countryName(opponent.playingas)} to surrender. War is brutal.`;
+      t = `you won by inflicting significantly greater casualties, forcing ${countryName(opponent.playingas)} to surrender.`;
       break;
     case "lost-casualties":
-      text("You lost :(", width / 2, height / 2 - 51);
-      t = `you lost by suffering significantly greater casualties and your country was forced to surrender. War is brutal.`;
+      t = `you lost by suffering significantly greater casualties and your country was forced to surrender.`;
       break;
   }
   textSize(24);
-  text(t, width / 2, height / 2 + 20);
+  text(t, width / 2, height - 51);
   pop();
 }
 
@@ -272,7 +252,7 @@ function drawCapitals() {
   const [paris, parisX, parisY] = capitals.france;
   ellipse(...vgrid(parisX, parisY), 8, 8);
   text(paris, ...vgrid(parisX, parisY - 15));
-  if (capitalsUnderForeignOccupation.includes("france")) {
+  if (isInFrontOfFrontline(parisX, parisY, "france")) {
     // draw a light red circle with dark borders and a big red ! in the middle of the circle
     // to indiciate that the capital is somewhat under foreign occupation
     console.log("drawing occupation circle for france");
@@ -294,7 +274,7 @@ function drawCapitals() {
   const [berlin, berlinX, berlinY] = capitals.germany;
   ellipse(...vgrid(berlinX, berlinY), 8, 8);
   text(berlin, ...vgrid(berlinX, berlinY - 15));
-  if (capitalsUnderForeignOccupation.includes("germany")) {
+  if (isInFrontOfFrontline(berlinX, berlinY, "germany")) {
     console.log("drawing occupation circle for germany");
     push();
     fill("#fab1aa");

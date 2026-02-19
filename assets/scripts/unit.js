@@ -39,6 +39,15 @@ class Unit {
   getFlagScale() {
     return Math.min(2.2, 0.0067 * Math.sqrt(this.size) + 0.8);
   }
+  noMoveAnimation() {
+    // if (this.animating) {
+    //   rounds.wgDone();
+    // }
+    // this.animation = false;
+    // this.animating = false;
+    this.animTargetX = this.x;
+    this.animTargetY = this.y;
+  }
 
   draw() {
     // const [width, height] =
@@ -50,9 +59,7 @@ class Unit {
     drawFlag(this.belongsTo, this.x, this.y, flagScale);
 
     // if mouse is over unit, show unit info box
-    if (
-      mouseInBox(this.x, this.y, flagDimensions.width, flagDimensions.height)
-    ) {
+    if (mouseInBox(this.x, this.y, flagDimensions.width, flagDimensions.height)) {
       push();
       fill(0, 0, 0, 200);
       let box_width = 135;
@@ -64,22 +71,15 @@ class Unit {
       textSize(12);
       textAlign(LEFT, CENTER);
       text(`${this.name}`, mouseX + 15, mouseY + 25);
-      text(
-        `Size: ${addCommasToNumber(Math.round(this.size))}`,
-        mouseX + 15,
-        mouseY + 40,
-      );
+      text(`Size: ${addCommasToNumber(Math.round(this.size))}`, mouseX + 15, mouseY + 40);
       text(`Speed: ${round(this.speed, 1)}`, mouseX + 15, mouseY + 55);
       text(`Attack: ${round(this.attack, 1)}`, mouseX + 15, mouseY + 70);
       text(`Stamina: ${round(this.stamina, 1)}`, mouseX + 15, mouseY + 85);
 
       // scroll the Your Units box to the unit info if hovering over the unit
       if (this.belongsTo === playingAs) {
-        const unitIndex = units
-          .filter((u) => u.belongsTo === playingAs)
-          .findIndex((u) => u.name === this.name);
-        const unitElement =
-          document.getElementsByClassName("unit-item")[unitIndex];
+        const unitIndex = units.filter((u) => u.belongsTo === playingAs).findIndex((u) => u.name === this.name);
+        const unitElement = document.getElementsByClassName("unit-item")[unitIndex];
         if (unitElement) {
           unitElement.scrollIntoView({ behavior: "smooth", block: "center" });
         }
@@ -99,17 +99,10 @@ class Unit {
       if (this.belongsTo === playingAs) {
         const movementIsTop = action.targetY < this.y; // check if target is above current position
         const startVectorX = this.x + flagDimensions.width / 2;
-        const startVectorY = movementIsTop
-          ? this.y - 2
-          : this.y + flagDimensions.height + 2;
+        const startVectorY = movementIsTop ? this.y - 2 : this.y + flagDimensions.height + 2;
         drawArrow(
           createVector(...realgrid(startVectorX, startVectorY)),
-          createVector(
-            ...realgrid(
-              action.targetX - startVectorX,
-              action.targetY - startVectorY,
-            ),
-          ),
+          createVector(...realgrid(action.targetX - startVectorX, action.targetY - startVectorY)),
           color(0, 0, 0),
         );
         break;
@@ -221,7 +214,7 @@ class Unit {
 
     if (distance === 0) return newActions;
 
-    const maxDistanceThisRound = this.speed * 6.7;
+    const maxDistanceThisRound = this.speed * speedPixelConversion;
     const travel = Math.min(distance, maxDistanceThisRound);
 
     const ratio = travel / distance;
@@ -279,7 +272,7 @@ class Unit {
       const distance = Math.hypot(deltaX, deltaY);
       totalProposedMovement += distance; // cumulative distance (fancy vocab)
     }
-    return Math.min(totalProposedMovement, this.speed * 6.7);
+    return Math.min(totalProposedMovement, this.speed * speedPixelConversion);
   }
 
   destroy() {
@@ -292,20 +285,14 @@ class Unit {
   }
 
   calculateMaxRadius() {
-    return (
-      Math.min(this.speed, 25) *
-      2.42 *
-      Math.min((this.size - 100) / (30000 - 100), 1)
-    ); // ocupation radius scales with speed and size
+    return Math.min(this.speed, 25) * 2.42 * Math.min((this.size - 100) / (30000 - 100), 1); // ocupation radius scales with speed and size
   }
 }
 
 function deployUnit() {
   const { size, speed, attack, stamina } = getDeployUnitSpecs();
 
-  const positionRaw = document.getElementById(
-    "deploy-unit-position-display",
-  ).textContent;
+  const positionRaw = document.getElementById("deploy-unit-position-display").textContent;
   const positionMatch = positionRaw.match(/\((\d+), (\d+)\)/);
   if (!positionMatch) {
     alert("Please select a valid position for the unit!");
@@ -328,26 +315,12 @@ function deployUnit() {
       ]) >
     resources
   ) {
-    alert(
-      "You cannot afford the upkeep cost of this unit along with your existing units!",
-    );
+    alert("You cannot afford the upkeep cost of this unit along with your existing units!");
     return;
   }
   resources -= cost;
 
-  units.push(
-    new Unit(
-      x,
-      y,
-      getUnitName(unitsEverDeployed, playingAs),
-      1,
-      size,
-      speed,
-      attack,
-      stamina,
-      playingAs,
-    ),
-  );
+  units.push(new Unit(x, y, getUnitName(unitsEverDeployed, playingAs), 1, size, speed, attack, stamina, playingAs));
 
   unitsEverDeployed += 1;
 
@@ -438,8 +411,7 @@ function updateUnitsListUI() {
       // select new position
       mouseClickHandler = null;
       setTimeout(() => {
-        document.getElementById(`move-unit-button-${i}`).textContent =
-          "(click on map to move unit)";
+        document.getElementById(`move-unit-button-${i}`).textContent = "(click on map to move unit)";
         mouseClickHandler = () => {
           if (!pointInMap(mouseX, mouseY)) {
             alert("Please select a position on the map!");
@@ -452,9 +424,7 @@ function updateUnitsListUI() {
 
           // move unit to new position
 
-          u.proposedActions = u.proposedActions.filter(
-            (action) => action.type !== "move",
-          ); // if a unit has a move action, remove that action
+          u.proposedActions = u.proposedActions.filter((action) => action.type !== "move"); // if a unit has a move action, remove that action
 
           u.addProposedAction({
             type: "move",
@@ -473,16 +443,8 @@ function updateUnitsListUI() {
         const unitForRemoval = units[i];
         // remove unit from units array
         units.splice(i, 1);
-        const deployCost = getUnitDeployCost(
-          u.size,
-          u.speed,
-          u.attack,
-          u.stamina,
-        );
-        if (
-          inWhatCountry(unitForRemoval.x, unitForRemoval.y) ===
-          unitForRemoval.belongsTo
-        ) {
+        const deployCost = getUnitDeployCost(u.size, u.speed, u.attack, u.stamina);
+        if (inWhatCountry(unitForRemoval.x, unitForRemoval.y) === unitForRemoval.belongsTo) {
           // return some resources if removing (not if surrendering in enemy territory)
           addResources(deployCost / 3); // refund 1/3rd of deploy cost (using units in battle will also wear down speed, attack, stamina and size so you'll get even less back)
           // update UI
@@ -510,14 +472,7 @@ function updateUnitsListUI() {
           if (otherUnit === u) continue;
           if (otherUnit.belongsTo !== playingAs) continue;
           if (areTwoUnitsInContact(u, otherUnit)) {
-            console.log(
-              "Merging",
-              otherUnit.name,
-              "into",
-              u.name,
-              totalAttack,
-              otherUnit.attack,
-            );
+            console.log("Merging", otherUnit.name, "into", u.name, totalAttack, otherUnit.attack);
             totalSize += otherUnit.size;
             totalSpeed += otherUnit.speed;
             totalAttack += otherUnit.attack;
@@ -606,14 +561,10 @@ function getUnitDeployCost(size, speed, attack, stamina, distanceFromCapital) {
   const speedNorm = (speed - 10) / (20 - 10);
   const attackNorm = (attack - 1) / (10 - 1);
   const staminaNorm = (stamina - 1) / (5 - 1);
-  const power =
-    sizeNorm * 0.35 + attackNorm * 0.3 + speedNorm * 0.2 + staminaNorm * 0.15;
+  const power = sizeNorm * 0.35 + attackNorm * 0.3 + speedNorm * 0.2 + staminaNorm * 0.15;
   let powerWithDistanceFromCapital = power;
   if (distanceFromCapital > 0) {
-    powerWithDistanceFromCapital = Math.pow(
-      power,
-      Math.min(distanceFromCapital / 100, 1.25),
-    );
+    powerWithDistanceFromCapital = Math.pow(power, Math.min(distanceFromCapital / 100, 1.25));
   }
   const curvedPower = Math.pow(powerWithDistanceFromCapital, 1.3); // nonlinear curve to avoid spamming units
   const cost = Math.round(MIN_COST + curvedPower * (MAX_COST - MIN_COST));
@@ -622,27 +573,16 @@ function getUnitDeployCost(size, speed, attack, stamina, distanceFromCapital) {
 
 function calculateDeployUnitCost() {
   const { size, speed, attack, stamina } = getDeployUnitSpecs();
-  const positionRaw = document.getElementById(
-    "deploy-unit-position-display",
-  ).textContent;
+  const positionRaw = document.getElementById("deploy-unit-position-display").textContent;
   const positionMatch = positionRaw.match(/\((\d+), (\d+)\)/);
   let distanceFromCapital = 0;
   if (positionMatch) {
     x = parseInt(positionMatch[1]);
     y = parseInt(positionMatch[2]);
-    distanceFromCapital = Math.hypot(
-      x - capitals[playingAs][1],
-      y - capitals[playingAs][2],
-    );
+    distanceFromCapital = Math.hypot(x - capitals[playingAs][1], y - capitals[playingAs][2]);
   }
   console.log("distance from capital:", distanceFromCapital);
-  const cost = getUnitDeployCost(
-    size,
-    speed,
-    attack,
-    stamina,
-    distanceFromCapital,
-  );
+  const cost = getUnitDeployCost(size, speed, attack, stamina, distanceFromCapital);
 
   // update deploy-unit-cost-display
   document.getElementById("deploy-unit-cost-display").innerText = `${cost}`;
@@ -672,17 +612,18 @@ function getDeployUnitSpecs() {
 function selectDeployUnitPosition() {
   mouseClickHandler = null;
   setTimeout(() => {
-    document.getElementById("deploy-unit-position-display").textContent =
-      "(click on map)";
+    document.getElementById("deploy-unit-position-display").textContent = "(click on map)";
     mouseClickHandler = () => {
       if (
-        !pointInCountry(
-          mouseX,
-          mouseY,
-          playingAs == "france" ? franceData : germanyData,
-        )
+        // !pointInCountry(
+        //   mouseX,
+        //   mouseY,
+        //   playingAs == "france" ? franceData : germanyData,
+        // )
+        isInFrontOfFrontline(mouseX, mouseY, playingAs) ||
+        !pointInMap(mouseX, mouseY)
       ) {
-        alert(`Please select a position within ${playingAs}!`);
+        alert(`Please select a position behind the frontline and within the map bounds!`);
         return;
       }
       const mousePosition = vgrid(mouseX, mouseY);
@@ -755,14 +696,7 @@ function getOccupationPolygonForUnit(unit) {
         continue;
       }
 
-      const hitDistance = rayVsUnitBox(
-        unit.x,
-        unit.y,
-        dirX,
-        dirY,
-        max_radius,
-        otherUnit,
-      );
+      const hitDistance = rayVsUnitBox(unit.x, unit.y, dirX, dirY, max_radius, otherUnit);
 
       if (hitDistance !== null && hitDistance < bestDistance) {
         bestDistance = hitDistance;
@@ -816,14 +750,7 @@ function turfPolyFromPoints(polygon) {
 function pointInUnitBox(x, y, unit) {
   const flagScale = unit.getFlagScale();
   const flagDimensions = getFlagDimensions(unit.belongsTo, flagScale);
-  return pointInBox(
-    x,
-    y,
-    unit.x,
-    unit.y,
-    flagDimensions.width,
-    flagDimensions.height,
-  );
+  return pointInBox(x, y, unit.x, unit.y, flagDimensions.width, flagDimensions.height);
 }
 
 function pointInPolygon(px, py, poly) {

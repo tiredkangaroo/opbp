@@ -16,19 +16,14 @@ class Opponent {
         (unit) =>
           unit.belongsTo === this.playingas &&
           (allowGuardUnits || !unit.isGuardUnit) &&
-          (includeUnitsNearOpponentCapital ||
-            Math.hypot(unit.x - opponentCapitalX, unit.y - opponentCapitalY) >
-              60),
+          (includeUnitsNearOpponentCapital || Math.hypot(unit.x - opponentCapitalX, unit.y - opponentCapitalY) > 60),
       )
       .sort((a, b) => {
         // random order
         return Math.random() - 0.5;
       });
   }
-  myUnitsNotMoving(
-    allowGuardUnits = false,
-    includeUnitsNearOpponentCapital = false,
-  ) {
+  myUnitsNotMoving(allowGuardUnits = false, includeUnitsNearOpponentCapital = false) {
     const opponentCapitalX = capitals[this.playerIsAs()][1];
     const opponentCapitalY = capitals[this.playerIsAs()][2];
     return units
@@ -37,9 +32,7 @@ class Opponent {
           unit.belongsTo === this.playingas &&
           unit.proposedActions.filter((a) => a.type === "move").length === 0 &&
           (allowGuardUnits || !unit.isGuardUnit) &&
-          (includeUnitsNearOpponentCapital ||
-            Math.hypot(unit.x - opponentCapitalX, unit.y - opponentCapitalY) >
-              60),
+          (includeUnitsNearOpponentCapital || Math.hypot(unit.x - opponentCapitalX, unit.y - opponentCapitalY) > 60),
       )
       .sort((a, b) => {
         // random order
@@ -55,16 +48,7 @@ class Opponent {
       if (unit.x < 196 || unit.x > 1183 || unit.y < 0 || unit.y > 900) {
         console.log("opponent unit out of bounds, removing:", unit);
         // give half resources back
-        this.addResources(
-          Math.round(
-            getUnitDeployCost(
-              unit.size,
-              unit.speed,
-              unit.attack,
-              unit.stamina,
-            ) / 2,
-          ),
-        );
+        this.addResources(Math.round(getUnitDeployCost(unit.size, unit.speed, unit.attack, unit.stamina) / 2));
         units = units.filter((u) => u.name !== unit.name);
       }
     }
@@ -73,16 +57,10 @@ class Opponent {
     const unitsNearCapital = units.filter(
       (unit) =>
         unit.belongsTo !== this.playingas &&
-        Math.hypot(
-          unit.x - capitals[this.playingas][1],
-          unit.y - capitals[this.playingas][2],
-        ) < 120,
+        Math.hypot(unit.x - capitals[this.playingas][1], unit.y - capitals[this.playingas][2]) < 120,
     );
     if (unitsNearCapital.length > 0) {
-      console.log(
-        "opponent proposing actions to defend capital from nearby units",
-        unitsNearCapital,
-      );
+      console.log("opponent proposing actions to defend capital from nearby units", unitsNearCapital);
       for (const unit of unitsNearCapital) {
         // move the closest unit to the capital towards the nearby unit
         const myUnits = this.myUnitsNotMoving(true, false);
@@ -93,7 +71,7 @@ class Opponent {
           // can we affort to move this unit towards the nearby unit?
           if (
             calculateRoundCost(this.playingas) +
-              Math.min(Math.hypot(u.x - unit.x, u.y - unit.y), u.speed * 6.7) <
+              Math.min(Math.hypot(u.x - unit.x, u.y - unit.y), u.speed * speedPixelConversion) <
             this.resources
           ) {
             // if yes, move!
@@ -103,11 +81,7 @@ class Opponent {
               targetY: unit.y,
             });
           } else {
-            console.log(
-              "opponent can't afford to move unit",
-              u.name,
-              "to defend capital",
-            );
+            console.log("opponent can't afford to move unit", u.name, "to defend capital");
           }
         }
 
@@ -188,18 +162,13 @@ class Opponent {
     let p = null;
     for (const unit of units) {
       // player unit in opponent territory
-      if (
-        unit.belongsTo === this.playingas &&
-        inWhatCountry(unit.x, unit.y) === this.playingas
-      ) {
+      if (unit.belongsTo === this.playingas && inWhatCountry(unit.x, unit.y) === this.playingas) {
         p = [unit.x, unit.y];
         break;
       }
     }
     if (p === null) {
-      p = randomPointInFeature(
-        this.playingas === "france" ? franceData : germanyData,
-      );
+      p = randomPointInFeature(this.playingas === "france" ? franceData : germanyData);
     }
 
     const myUnits = this.myUnitsNotMoving();
@@ -220,9 +189,7 @@ class Opponent {
   moveOpponentIntoPlayerTerritory() {
     console.log("opponent moving unit around in player territory");
     // move a unit around in opposiing (real player's) territory
-    const opposing_point = randomPointInFeature(
-      this.playingas === "france" ? germanyData : franceData,
-    );
+    const opposing_point = randomPointInFeature(this.playingas === "france" ? germanyData : franceData);
     const myUnits = this.myUnitsNotMoving();
     if (myUnits.length === 0) {
       return 0;
@@ -242,39 +209,18 @@ class Opponent {
     if (this.resources <= MIN_COST * 4) {
       return 0; // can't afford enough
     }
-    if (this.myUnits().length >= 12) {
+    if (this.myUnits(true, true).length >= 12) {
       return 0; // don't deploy if we already have 12 units, otherwise it gets really laggy and too crowded
     }
     // between a quarter and a third of current resources except size and speed
-    const size =
-      Math.floor(
-        Math.pow(((this.resources / MAX_COST) * 10000) / randomInt(1, 2), 0.85),
-      ) || 100;
-    const speed = Math.min(
-      Math.pow(
-        Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)),
-        0.8,
-      ) || 10,
-      25,
-    );
-    const attack = Math.min(
-      Math.pow(
-        Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)),
-        0.75,
-      ) || 1,
-      15,
-    );
-    const stamina = Math.max(
-      Math.pow(
-        Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)),
-        0.67,
-      ) || 1,
-      5,
-    );
-    const [x, y] = randomPointInFeature(
-      this.playingas === "france" ? franceData : germanyData,
-      1000,
-    );
+    const size = Math.floor(Math.pow(((this.resources / MAX_COST) * 10000) / randomInt(1, 2), 0.85)) || 100;
+    if (this.size < 6000) {
+      return 0; // it's a waste and im tired of fighting them
+    }
+    const speed = Math.min(Math.pow(Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)), 0.8) || 10, 25);
+    const attack = Math.min(Math.pow(Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)), 0.75) || 1, 15);
+    const stamina = Math.max(Math.pow(Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)), 0.67) || 1, 5);
+    const [x, y] = randomPointInFeature(this.playingas === "france" ? franceData : germanyData, 1000);
     console.log("deploying at:", x, y, size, speed, attack, stamina);
     const cost = getUnitDeployCost(size, speed, attack, stamina) || 50;
     if (cost > this.resources) {
@@ -333,8 +279,7 @@ class Opponent {
       console.log("no splittable units found");
       return 1;
     }
-    const unitToSplit =
-      splittableUnits[randomInt(0, splittableUnits.length - 1)];
+    const unitToSplit = splittableUnits[randomInt(0, splittableUnits.length - 1)];
     const splitMultiplier = 0.4 + Math.random() * 0.2; // between 40% and 60%, i should make it like this in the other one instead of using max followed by min
     const splitSize = Math.round(unitToSplit.size * splitMultiplier);
     unitToSplit.size = unitToSplit.size - splitSize;
@@ -372,9 +317,7 @@ class Opponent {
       // remove unit
       this.addResources(
         // to make germany more cracked, we give then all the resources back from removing a unit, not just a third like we do for the player
-        Math.round(
-          getUnitDeployCost(unit.size, unit.speed, unit.attack, unit.stamina),
-        ),
+        Math.round(getUnitDeployCost(unit.size, unit.speed, unit.attack, unit.stamina)),
       );
       console.log("opponent removing unit:", unit);
       units = units.filter((u) => u.name !== unit.name);
@@ -384,31 +327,15 @@ class Opponent {
     return 1;
   }
   deployProtectionUnits() {
-    const capitalCoords =
-      capitals[this.playingas === "france" ? "france" : "germany"];
-    const nearbyUnits = this.myUnits().filter(
-      (u) => Math.hypot(u.x - capitalCoords[1], u.y - capitalCoords[2]) < 60,
-    );
+    const capitalCoords = capitals[this.playingas === "france" ? "france" : "germany"];
+    const nearbyUnits = this.myUnits().filter((u) => Math.hypot(u.x - capitalCoords[1], u.y - capitalCoords[2]) < 60);
     if (nearbyUnits.length >= 3) {
       return 0;
     }
-    const sze =
-      Math.floor(((this.resources / MAX_COST) * 10000) / randomInt(1, 2)) ||
-      100;
-    const seed = Math.min(
-      Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)),
-      25,
-    );
-    const atack =
-      Math.min(
-        Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)),
-        15,
-      ) || 1;
-    const samina =
-      Math.min(
-        Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)),
-        10,
-      ) || 1;
+    const sze = Math.floor(((this.resources / MAX_COST) * 10000) / randomInt(1, 2)) || 100;
+    const seed = Math.min(Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)), 25);
+    const atack = Math.min(Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)), 15) || 1;
+    const samina = Math.min(Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)), 10) || 1;
     const c = getUnitDeployCost(sze, seed, atack, samina) || 50;
     if (c > this.resources) {
       return 0; // can't afford
@@ -430,9 +357,7 @@ class Opponent {
     console.log("deployed new unit near capital for opponent:", nU);
     updateUnitsListUI();
     // merge all units in that radius
-    const unitsToMerge = this.myUnits(true).filter((u) =>
-      areTwoUnitsInContact(u, nU),
-    );
+    const unitsToMerge = this.myUnits(true).filter((u) => areTwoUnitsInContact(u, nU));
     for (const unit of unitsToMerge) {
       if (unit.name === nU.name) {
         continue;
@@ -459,18 +384,14 @@ class Opponent {
     for (const opposingUnit of opponentUnits) {
       // this allows the opponent to make blunders too if the opposing unit
       // has better stats and myUnit is just barely bigger, should be interesting
-      const myLargerUnits = this.myUnitsNotMoving().filter(
-        (u) => u.size > opposingUnit.size,
-      );
+      const myLargerUnits = this.myUnitsNotMoving().filter((u) => u.size > opposingUnit.size);
       if (myLargerUnits.length === 0) {
         continue;
       }
       // move the closest larger unit towards the target unit
       let closestDist = Infinity;
       for (const m of myLargerUnits) {
-        const dist = Math.sqrt(
-          (m.x - opposingUnit.x) ** 2 + (m.y - opposingUnit.y) ** 2,
-        );
+        const dist = Math.sqrt((m.x - opposingUnit.x) ** 2 + (m.y - opposingUnit.y) ** 2);
         if (dist < closestDist) {
           closestDist = dist;
           myUnit = m;
@@ -482,12 +403,7 @@ class Opponent {
       }
     }
     if (targetUnit && myUnit) {
-      console.log(
-        "opponent moving unit",
-        myUnit.name,
-        "towards",
-        targetUnit.name,
-      );
+      console.log("opponent moving unit", myUnit.name, "towards", targetUnit.name);
       myUnit.addProposedAction({
         type: "move",
         targetX: targetUnit.x,
@@ -499,9 +415,7 @@ class Opponent {
   moveTowardsOpponentUnitInPlayerTerritory() {
     // find the first opponent unit in player territory and move a unit that has a larger size towards it
     const unitToMoveTo = units.find(
-      (u) =>
-        u.belongsTo !== this.playingas &&
-        inWhatCountry(u.x, u.y) !== this.playingas, // in player territory
+      (u) => u.belongsTo !== this.playingas && inWhatCountry(u.x, u.y) !== this.playingas, // in player territory
     );
     if (!unitToMoveTo) {
       return 0;
@@ -515,21 +429,14 @@ class Opponent {
     let closestDist = Infinity;
     let myUnit = null;
     for (const m of myLargerUnits) {
-      const dist = Math.sqrt(
-        (m.x - unitToMoveTo.x) ** 2 + (m.y - unitToMoveTo.y) ** 2,
-      );
+      const dist = Math.sqrt((m.x - unitToMoveTo.x) ** 2 + (m.y - unitToMoveTo.y) ** 2);
       if (dist < closestDist) {
         closestDist = dist;
         myUnit = m;
       }
     }
     if (myUnit) {
-      console.log(
-        "opponent moving unit",
-        myUnit.name,
-        "towards opponent unit in player territory",
-        unitToMoveTo.name,
-      );
+      console.log("opponent moving unit", myUnit.name, "towards opponent unit in player territory", unitToMoveTo.name);
       myUnit.addProposedAction({
         type: "move",
         targetX: unitToMoveTo.x,
@@ -549,10 +456,7 @@ class Opponent {
       [792, 433],
     ];
     if (this.playingas === "germany") {
-      const pt =
-        germanPointsNearFrenchCapital[
-          randomInt(0, germanPointsNearFrenchCapital.length - 1)
-        ];
+      const pt = germanPointsNearFrenchCapital[randomInt(0, germanPointsNearFrenchCapital.length - 1)];
       const newUnit = new Unit(
         pt[0],
         pt[1],
@@ -567,17 +471,12 @@ class Opponent {
       units.push(newUnit);
       this.unitsEverCreated++;
       this.addResources(-getUnitDeployCost(6700, 14, 5, 5));
-      console.log(
-        "deployed new unit near french capital for opponent:",
-        newUnit,
-      );
+      console.log("deployed new unit near french capital for opponent:", newUnit);
 
       // move unit towards the target unit
       if (
-        calculateMovementCost(
-          newUnit,
-          Math.hypot(newUnit.x - unitToMoveTo.x, newUnit.y - unitToMoveTo.y),
-        ) > this.resources
+        calculateMovementCost(newUnit, Math.hypot(newUnit.x - unitToMoveTo.x, newUnit.y - unitToMoveTo.y)) >
+        this.resources
       ) {
         console.log("opponent cannot move new unit towards target unit");
         return 1; // still deployed a unit so counts
@@ -595,20 +494,13 @@ class Opponent {
   }
   moveTowardsOpponentCapital() {
     // get all units not moving larger than 6000 and move them to the opposing capital
-    const bigUnits = this.myUnitsNotMoving(false, true).filter(
-      (u) => u.size >= 6000,
-    );
+    const bigUnits = this.myUnitsNotMoving(false, true).filter((u) => u.size >= 6000);
     if (bigUnits.length === 0) {
       return 0;
     }
-    const capital =
-      capitals[this.playingas === "france" ? "germany" : "france"];
+    const capital = capitals[this.playingas === "france" ? "germany" : "france"];
     for (const unit of bigUnits) {
-      console.log(
-        "opponent moving big unit",
-        unit.name,
-        "towards opposing capital",
-      );
+      console.log("opponent moving big unit", unit.name, "towards opposing capital");
       unit.addProposedAction({
         type: "move",
         targetX: capital[1],
@@ -637,8 +529,7 @@ function rayVsUnitBox(originX, originY, dirX, dirY, maxDist, otherUnit) {
   // the top left corner is (x - r/sqrt(2), y - r/sqrt(2)) and the width and height are rsqrt(2)
 
   const max_radius = otherUnit.calculateMaxRadius();
-  const isInEnemyTerritory =
-    inWhatCountry(otherUnit.x, otherUnit.y) !== otherUnit.belongsTo;
+  const isInEnemyTerritory = inWhatCountry(otherUnit.x, otherUnit.y) !== otherUnit.belongsTo;
   const mul = isInEnemyTerritory ? 0.8 : 1; // smaller occupation in emeny terriroty i cant type;w
   const dims = {
     width: max_radius * sqrt2 * mul,

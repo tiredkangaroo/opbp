@@ -27,23 +27,16 @@ class Rounds {
       console.log("Cannot advance round, round already in progress.");
       return;
     }
+    document.getElementById("deploy-unit-position-display").innerText = "(not selected)";
 
     const roundCost = calculateRoundCost(playingAs);
     displayRoundCost(); // should've already been displayed but doesn't hurt
     if (roundCost > resources) {
-      alert(
-        "Not enough resources to advance round! (Hint: move less and/or smaller units, or remove some units)",
-      );
+      alert("Not enough resources to advance round! (Hint: move less and/or smaller units, or remove some units)");
       return;
     }
     addResources(-roundCost); // deduct round cost
-    console.log(
-      "opponent",
-      "resources",
-      opponent.resources,
-      "round cost",
-      calculateRoundCost(opponent.playingas),
-    );
+    console.log("opponent", "resources", opponent.resources, "round cost", calculateRoundCost(opponent.playingas));
     opponent.addResources(-calculateRoundCost(opponent.playingas));
 
     this.inProgress = true;
@@ -51,21 +44,12 @@ class Rounds {
     opponent.proposeOpposingActions();
     for (const [index, unit] of units.entries()) {
       if (unit.belongsTo === playingAs) {
-        console.log(
-          "Disabling unit controls for ",
-          unit.name,
-          " at index ",
-          index,
-        );
-        const moveUnitButton = document.getElementById(
-          "move-unit-button-" + index,
-        );
+        console.log("Disabling unit controls for ", unit.name, " at index ", index);
+        const moveUnitButton = document.getElementById("move-unit-button-" + index);
         if (moveUnitButton) {
           moveUnitButton.disabled = true;
         }
-        const removeUnitButton = document.getElementById(
-          "remove-unit-button-" + index,
-        );
+        const removeUnitButton = document.getElementById("remove-unit-button-" + index);
         if (removeUnitButton) {
           removeUnitButton.disabled = true;
         }
@@ -73,8 +57,7 @@ class Rounds {
       unit.handleAdvanceRound();
     }
     this.roundNumber += 1;
-    document.getElementById("current-round-display").innerText =
-      this.roundNumber;
+    document.getElementById("current-round-display").innerText = this.roundNumber;
     this.watchRound();
     updateUnitsListUI();
 
@@ -85,33 +68,13 @@ class Rounds {
     const playerCapitalY = capitals[playingAs][2];
     const opponentCapitalX = capitals[opponent.playingas][1];
     const opponentCapitalY = capitals[opponent.playingas][2];
-    for (const unit of units) {
-      if (
-        unit.cachedOccupationPolygon == null ||
-        unit.cachedOccupationPolygon.length < 4
-      ) {
-        continue; // no business here
-      }
-      if (
-        unit.belongsTo === playingAs &&
-        pointInPolygon(
-          opponentCapitalX,
-          opponentCapitalY,
-          unit.cachedOccupationPolygon,
-        )
-      ) {
-        isOpponentCapitalHeld = true;
-      } else if (
-        unit.belongsTo === opponent.playingas &&
-        pointInPolygon(
-          playerCapitalX,
-          playerCapitalY,
-          unit.cachedOccupationPolygon,
-        )
-      ) {
-        isPlayerCapitalHeld = true;
-      }
-    }
+    isPlayerCapitalHeld =
+      (playingAs == "france" && isInFrontOfFrontline(playerCapitalX, playerCapitalY, playingAs)) ||
+      (playingAs == "germany" && isInFrontOfFrontline(playerCapitalX, playerCapitalY, playingAs));
+    isOpponentCapitalHeld =
+      (opponent.playingas == "france" &&
+        isInFrontOfFrontline(opponentCapitalX, opponentCapitalY, opponent.playingas)) ||
+      (opponent.playingas == "germany" && isInFrontOfFrontline(opponentCapitalX, opponentCapitalY, opponent.playingas));
     capitalsUnderForeignOccupation = [];
     if (isPlayerCapitalHeld) {
       capitalsUnderForeignOccupation.push(playingAs);
@@ -135,21 +98,13 @@ class Rounds {
       playingState = "won-capital";
       units = [];
     }
-    const playingAsCasualties =
-      playingAs === "france" ? french_casualties : german_casualties;
-    const opponentCasualties =
-      playingAs === "france" ? german_casualties : french_casualties;
-    if (
-      playingAsCasualties > 1_000_000 &&
-      opponentCasualties < playingAsCasualties / 2
-    ) {
+    const playingAsCasualties = playingAs === "france" ? french_casualties : german_casualties;
+    const opponentCasualties = playingAs === "france" ? german_casualties : french_casualties;
+    if (playingAsCasualties > 1_000_000 && opponentCasualties < playingAsCasualties / 2) {
       // if u have more than a mil casualties and opponent has less than half as many casualties as u, u lose
       playingState = "lost-casualties";
       units = [];
-    } else if (
-      opponentCasualties > 1_000_000 &&
-      playingAsCasualties < opponentCasualties / 2
-    ) {
+    } else if (opponentCasualties > 1_000_000 && playingAsCasualties < opponentCasualties / 2) {
       // vice versa
       playingState = "won-casualties";
       units = [];
@@ -176,14 +131,14 @@ class Rounds {
 
     // draw every conflict
     for (const conflict of this.conflicts) {
-      // remove any movement proposals
-      conflict.myUnit.proposedActions = conflict.myUnit.proposedActions.filter(
+      // remove any movement proposals and any animation to avoid moving during conflict
+      conflict.myUnit.proposedActions = conflict.myUnit.proposedActions.filter((action) => action.type !== "move");
+      conflict.enemyUnit.proposedActions = conflict.enemyUnit.proposedActions.filter(
         (action) => action.type !== "move",
       );
-      conflict.enemyUnit.proposedActions =
-        conflict.enemyUnit.proposedActions.filter(
-          (action) => action.type !== "move",
-        );
+      conflict.myUnit.noMoveAnimation();
+      conflict.enemyUnit.noMoveAnimation();
+
       const resolved = conflict.resolveFrame(this.conflicts);
       if (resolved) {
         // remove conflict from list
@@ -191,13 +146,7 @@ class Rounds {
         this.historicalConflicts.push({
           ...conflict,
         }); // add copy of conflict to historical conflicts list for record keeping
-        console.log(
-          "Conflict between ",
-          conflict.myUnit.name,
-          " and ",
-          conflict.enemyUnit.name,
-          " resolved.",
-        );
+        console.log("Conflict between ", conflict.myUnit.name, " and ", conflict.enemyUnit.name, " resolved.");
         this.wgDone(); // each conflict counts as part of the wg
       }
       conflict.frame += 1;
@@ -217,23 +166,14 @@ class Rounds {
           }
 
           if (!conflictOngoing) {
-            console.log(
-              "Starting conflict between ",
-              unit.name,
-              " and ",
-              otherUnit.name,
-            );
+            console.log("Starting conflict between ", unit.name, " and ", otherUnit.name);
             const newConflict = new Conflict(unit, otherUnit);
             this.wgAdd();
             this.conflicts.push(newConflict);
 
             // remove any proposed movements for these units this round
-            unit.proposedActions = unit.proposedActions.filter(
-              (action) => action.type !== "move",
-            );
-            otherUnit.proposedActions = otherUnit.proposedActions.filter(
-              (action) => action.type !== "move",
-            );
+            unit.proposedActions = unit.proposedActions.filter((action) => action.type !== "move");
+            otherUnit.proposedActions = otherUnit.proposedActions.filter((action) => action.type !== "move");
           }
         }
       }
@@ -284,57 +224,37 @@ class Conflict {
     this.enemyCasualties = 0;
   }
   conflictName() {
-    return (
-      "Conflict between " + this.myUnit.name + " and " + this.enemyUnit.name
-    );
+    return "Conflict between " + this.myUnit.name + " and " + this.enemyUnit.name;
   }
   resolveFrame(allConflicts) {
     // check if the units are still in contact
     if (!areTwoUnitsInContact(this.myUnit, this.enemyUnit)) {
-      console.log(
-        "conflict resolved as a result of no contact",
-        this.myUnit.name,
-        this.enemyUnit.name,
-      );
+      console.log("conflict resolved as a result of no contact", this.myUnit.name, this.enemyUnit.name);
       return true; // conflict resolved
     }
     if (this.frame > maximumFrameRate / 2) {
-      console.log(
-        "conflict done for this round by time",
-        this.myUnit.name,
-        this.enemyUnit.name,
-      );
+      console.log("conflict done for this round by time", this.myUnit.name, this.enemyUnit.name);
       // resolve combat for a half second
       return true;
     }
 
     // this should be good? or horribly unbalanced, who even knows atp
     let myAttackPower =
-      (this.myUnit.size / 50) ** 0.9 *
-        this.myUnit.attack *
-        (1 + this.myUnit.stamina / 10) +
+      (this.myUnit.size / 50) ** 0.9 * this.myUnit.attack * (1 + this.myUnit.stamina / 10) +
       Math.random() * this.myUnit.size;
 
     let enemyAttackPower =
-      (this.enemyUnit.size / 50) ** 0.9 *
-        this.enemyUnit.attack *
-        (1 + this.enemyUnit.stamina / 10) +
+      (this.enemyUnit.size / 50) ** 0.9 * this.enemyUnit.attack * (1 + this.enemyUnit.stamina / 10) +
       Math.random() * this.enemyUnit.size;
 
-    const otherConflictInvolvement = unitNamesInHowManyConflicts(allConflicts, [
-      this.myUnit.name,
-      this.enemyUnit.name,
-    ]);
+    const otherConflictInvolvement = unitNamesInHowManyConflicts(allConflicts, [this.myUnit.name, this.enemyUnit.name]);
     if (otherConflictInvolvement[this.myUnit.name]) {
       console.log(
         "player unit involved in multiple conflicts, reducing attack power",
         this.myUnit.name,
         otherConflictInvolvement[this.myUnit.name],
       );
-      myAttackPower = Math.pow(
-        myAttackPower,
-        Math.max(1 - 0.12 * otherConflictInvolvement[this.myUnit.name], 0.1),
-      ); // reduce attack power for each additional conflict the unit is involved in, no matter how large the other conflicts are
+      myAttackPower = Math.pow(myAttackPower, Math.max(1 - 0.12 * otherConflictInvolvement[this.myUnit.name], 0.1)); // reduce attack power for each additional conflict the unit is involved in, no matter how large the other conflicts are
     }
     if (otherConflictInvolvement[this.enemyUnit.name]) {
       console.log(
@@ -349,13 +269,9 @@ class Conflict {
     }
 
     const startingEnemyUnitSize = this.enemyUnit.size;
-    this.enemyUnit.size = Math.round(
-      this.enemyUnit.size - (myAttackPower || 1) / 10,
-    ); // the 10 is arbitray
+    this.enemyUnit.size = Math.round(this.enemyUnit.size - (myAttackPower || 1) / 10); // the 10 is arbitray
     const startingMyUnitSize = this.myUnit.size;
-    this.myUnit.size = Math.round(
-      this.myUnit.size - (enemyAttackPower || 1) / 10,
-    );
+    this.myUnit.size = Math.round(this.myUnit.size - (enemyAttackPower || 1) / 10);
 
     const myLoss = startingMyUnitSize - this.myUnit.size;
     const enemyLoss = startingEnemyUnitSize - this.enemyUnit.size;
@@ -396,15 +312,9 @@ class Conflict {
 }
 
 function areTwoUnitsInContact(unit, otherUnit) {
-  const { width: w1, height: h1 } = getFlagDimensions(
-    unit.belongsTo,
-    unit.getFlagScale(),
-  );
+  const { width: w1, height: h1 } = getFlagDimensions(unit.belongsTo, unit.getFlagScale());
 
-  const { width: w2, height: h2 } = getFlagDimensions(
-    otherUnit.belongsTo,
-    otherUnit.getFlagScale(),
-  );
+  const { width: w2, height: h2 } = getFlagDimensions(otherUnit.belongsTo, otherUnit.getFlagScale());
 
   return !(
     unit.x + w1 < otherUnit.x || // unit is left of other
@@ -427,8 +337,7 @@ function calculateRoundCost(country) {
     // heavier exponential so moving big armies hurts
     const unitMovement = u.getProposedMovementDistanceThisRound();
 
-    totalCost +=
-      calculateUpkeepCostForUnits([u]) + calculateMovementCost(u, unitMovement);
+    totalCost += calculateUpkeepCostForUnits([u]) + calculateMovementCost(u, unitMovement);
   }
 
   // round for cleaner resource numbers
@@ -438,8 +347,7 @@ function calculateRoundCost(country) {
 function calculateMovementCost(unit, unitMovement) {
   const sizeScale = Math.sqrt(unit.size / 100);
   const movementFactor = (unitMovement || 0) / 100;
-  const movementCost =
-    Math.pow(sizeScale, 1.8) * Math.pow(movementFactor, 2.2) * 1.4;
+  const movementCost = Math.pow(sizeScale, 1.8) * Math.pow(movementFactor, 2.2) * 1.4;
   return movementCost;
 }
 
@@ -448,10 +356,7 @@ function calculateUpkeepCostForUnits(units) {
   for (const u of units) {
     const currentLocation = inWhatCountry(u.x, u.y);
     const sizeScale = Math.sqrt(u.size / 100);
-    const upkeepCost = Math.pow(
-      sizeScale,
-      currentLocation === u.belongsTo ? 1.15 : 1.6741,
-    ); // higher cost if in enemy territory
+    const upkeepCost = Math.pow(sizeScale, currentLocation === u.belongsTo ? 0.9 : 1.41); // higher cost if in enemy territory
     totalUpkeep += upkeepCost;
   }
   return totalUpkeep;
@@ -460,21 +365,18 @@ function calculateUpkeepCostForUnits(units) {
 function displayRoundCost() {
   const roundCost = calculateRoundCost(playingAs);
   document.getElementById("round-cost-display").innerText = roundCost;
-  document.getElementById("upkeep-cost-display").innerText =
-    calculateUpkeepCostForUnits(
-      units.filter((u) => u.belongsTo === playingAs),
-    ).toFixed(0);
+  document.getElementById("upkeep-cost-display").innerText = calculateUpkeepCostForUnits(
+    units.filter((u) => u.belongsTo === playingAs),
+  ).toFixed(0);
 }
 function unitNamesInHowManyConflicts(conflicts, unitNames) {
   const conflictCount = {};
   for (const conflict of conflicts) {
     if (unitNames.includes(conflict.myUnit.name)) {
-      conflictCount[conflict.myUnit.name] =
-        (conflictCount[conflict.myUnit.name] || 0) + 1;
+      conflictCount[conflict.myUnit.name] = (conflictCount[conflict.myUnit.name] || 0) + 1;
     }
     if (unitNames.includes(conflict.enemyUnit.name)) {
-      conflictCount[conflict.enemyUnit.name] =
-        (conflictCount[conflict.enemyUnit.name] || 0) + 1;
+      conflictCount[conflict.enemyUnit.name] = (conflictCount[conflict.enemyUnit.name] || 0) + 1;
     }
   }
   return conflictCount;
