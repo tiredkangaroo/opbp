@@ -10,7 +10,7 @@
       turn-based (almost) strategy game where you fight a war against your opponent.
     </p>
     <h1>demo gameplay?</h1>
-    <p>yeah! check it out [here](https://github.com/tiredkangaroo/opbp/raw/refs/heads/main/assets/help/demo.mov). the demo game was 23 minutes long (video has been sped up 10x).</p>
+    <p>yeah! check it out <a href="https://github.com/tiredkangaroo/opbp/raw/refs/heads/main/assets/help/demo.mov">. the demo game was 23 minutes long (video has been sped up 10x).</p>
     <video controls style="width: 100%; height: auto">
       <source src="assets/help/demo.mov" />
       your browser does not support the video tag.
