@@ -47,6 +47,7 @@ class Unit {
     // this.animating = false;
     this.animTargetX = this.x;
     this.animTargetY = this.y;
+    this.animProgress = 35;
   }
 
   draw() {
@@ -78,7 +79,19 @@ class Unit {
 
       // scroll the Your Units box to the unit info if hovering over the unit
       if (this.belongsTo === playingAs) {
-        const unitIndex = units.filter((u) => u.belongsTo === playingAs).findIndex((u) => u.name === this.name);
+        const unitIndex = units
+          .filter((u) => u.belongsTo === playingAs)
+          .sort((a, b) => {
+            if (a.isGuardUnit && !b.isGuardUnit) {
+              return 1;
+            } else if (!a.isGuardUnit && b.isGuardUnit) {
+              return -1;
+            } else {
+              return 0;
+            }
+          })
+          .findIndex((u) => u.name === this.name);
+
         const unitElement = document.getElementsByClassName("unit-item")[unitIndex];
         if (unitElement) {
           unitElement.scrollIntoView({ behavior: "smooth", block: "center" });

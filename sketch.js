@@ -120,7 +120,7 @@ function drawEndScreen() {
   stroke(0);
   strokeWeight(3);
   rectMode(CENTER);
-  rect(width / 2, height, 800, 200);
+  rect(width / 2, height, 1100, 200);
 
   // text settings
   fill(0);
@@ -146,6 +146,7 @@ function drawEndScreen() {
       break;
   }
   textSize(24);
+  fill(0);
   text(t, width / 2, height - 51);
   pop();
 }
