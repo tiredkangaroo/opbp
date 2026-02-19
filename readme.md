@@ -2,7 +2,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Help</title>
   </head>
   <body>
     <h1>what is opbp?</h1>
@@ -11,7 +10,7 @@
       turn-based (almost) strategy game where you fight a war against your opponent.
     </p>
     <h1>demo gameplay?</h1>
-    <p>yeah! check it out below. the demo game was 23 minutes long (video has been sped up 10x).</p>
+    <p>yeah! check it out [here](https://github.com/tiredkangaroo/opbp/raw/refs/heads/main/assets/help/demo.mov). the demo game was 23 minutes long (video has been sped up 10x).</p>
     <video controls style="width: 100%; height: auto">
       <source src="assets/help/demo.mov" />
       your browser does not support the video tag.
