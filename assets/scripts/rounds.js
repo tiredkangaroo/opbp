@@ -98,17 +98,17 @@ class Rounds {
       playingState = "won-capital";
       units = [];
     }
-    const playingAsCasualties = playingAs === "france" ? french_casualties : german_casualties;
-    const opponentCasualties = playingAs === "france" ? german_casualties : french_casualties;
-    if (playingAsCasualties > 1_000_000 && opponentCasualties < playingAsCasualties / 2) {
-      // if u have more than a mil casualties and opponent has less than half as many casualties as u, u lose
-      playingState = "lost-casualties";
-      units = [];
-    } else if (opponentCasualties > 1_000_000 && playingAsCasualties < opponentCasualties / 2) {
-      // vice versa
-      playingState = "won-casualties";
-      units = [];
-    }
+    // const playingAsCasualties = playingAs === "france" ? french_casualties : german_casualties;
+    // const opponentCasualties = playingAs === "france" ? german_casualties : french_casualties;
+    // if (playingAsCasualties > 1_000_000 && opponentCasualties < playingAsCasualties / 2) {
+    //   // if u have more than a mil casualties and opponent has less than half as many casualties as u, u lose
+    //   playingState = "lost-casualties";
+    //   units = [];
+    // } else if (opponentCasualties > 1_000_000 && playingAsCasualties < opponentCasualties / 2) {
+    //   // vice versa
+    //   playingState = "won-casualties";
+    //   units = [];
+    // }
   }
 
   wgAdd() {
@@ -273,8 +273,8 @@ class Conflict {
     const startingMyUnitSize = this.myUnit.size;
     this.myUnit.size = Math.round(this.myUnit.size - (enemyAttackPower || 1) / 10);
 
-    const myLoss = startingMyUnitSize - this.myUnit.size;
-    const enemyLoss = startingEnemyUnitSize - this.enemyUnit.size;
+    const myLoss = Math.min(startingMyUnitSize - this.myUnit.size, startingMyUnitSize);
+    const enemyLoss = Math.min(startingEnemyUnitSize - this.enemyUnit.size, startingEnemyUnitSize);
     this.myCasualties += myLoss;
     this.enemyCasualties += enemyLoss;
     if (playingAs === "france") {

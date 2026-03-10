@@ -155,12 +155,13 @@ class Unit {
   }
 
   shortName() {
-    if (this.name.includes("Guard")) {
+    if (this.name.includes("Paris") || this.name.includes("Berlin")) {
       // return capitals[this.belongsTo][0] + " Guard";
       return this.name.split(" ")[0] + " Guard";
     }
-    const nameSplit = this.name.split(" ");
-    return nameSplit[0] + " " + nameSplit[3];
+    return this.name;
+    // const nameSplit = this.name.split(" ");
+    // return nameSplit[0] + " " + nameSplit[3];
   }
 
   addProposedAction(action) {

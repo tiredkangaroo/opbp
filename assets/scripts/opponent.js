@@ -2,7 +2,7 @@ class Opponent {
   constructor(op_playingas, difficulty) {
     this.playingas = op_playingas;
     this.difficulty = difficulty; // range 1-3
-    this.resources = 3000; // starting resources for opponent
+    this.resources = 8000; // starting resources for opponent
     this.unitsEverCreated = 4; // starts with 4 units
   }
   playerIsAs() {
@@ -219,7 +219,7 @@ class Opponent {
     }
     const speed = Math.min(Math.pow(Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)), 0.8) || 10, 25);
     const attack = Math.min(Math.pow(Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)), 0.75) || 1, 15);
-    const stamina = Math.max(Math.pow(Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)), 0.67) || 1, 5);
+    const stamina = Math.min(Math.pow(Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)), 0.67) || 1, 5);
     const [x, y] = randomPointInFeature(this.playingas === "france" ? franceData : germanyData, 1000);
     console.log("deploying at:", x, y, size, speed, attack, stamina);
     const cost = getUnitDeployCost(size, speed, attack, stamina) || 50;

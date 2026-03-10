@@ -81,7 +81,7 @@ function setup() {
 
       const x = capitalX + protectionRadius * Math.sin(angleRad) - w1 / 2;
       const y = capitalY + protectionRadius * Math.cos(angleRad) - h1 / 2;
-      units.push(new Unit(x, y, `${ordinalNumerals[i]} ${capitalName} Guard`, 10, 4100, 20, 10, 5, country));
+      units.push(new Unit(x, y, `${ordinalNumerals[i]} ${capitalName} Guard`, 10, 10000, 20, 10, 5, country));
     }
   }
 }
