@@ -64,6 +64,16 @@ class Unit {
     const flagDimensions = getFlagDimensions(this.belongsTo, flagScale);
     drawFlag(this.belongsTo, this.x, this.y, flagScale);
 
+    // highlight selected unit
+    if (selectedUnit === this) {
+      push();
+      noFill();
+      stroke(255, 235, 100);
+      strokeWeight(3);
+      rect(this.x - 3, this.y - 3, flagDimensions.width + 6, flagDimensions.height + 6);
+      pop();
+    }
+
     // if mouse is over unit, show unit info box
     if (mouseInBox(this.x, this.y, flagDimensions.width, flagDimensions.height)) {
       push();
@@ -84,25 +94,7 @@ class Unit {
       text(`Supply: ${Math.round(getUnitSupply(this) * 100)}%`, mouseX + 15, mouseY + 100);
 
       // scroll the Your Units box to the unit info if hovering over the unit
-      if (this.belongsTo === playingAs) {
-        const unitIndex = units
-          .filter((u) => u.belongsTo === playingAs)
-          .sort((a, b) => {
-            if (a.isGuardUnit && !b.isGuardUnit) {
-              return 1;
-            } else if (!a.isGuardUnit && b.isGuardUnit) {
-              return -1;
-            } else {
-              return 0;
-            }
-          })
-          .findIndex((u) => u.name === this.name);
-
-        const unitElement = document.getElementsByClassName("unit-item")[unitIndex];
-        if (unitElement) {
-          unitElement.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }
+      scrollToUnitInList(this);
       pop();
     }
 
@@ -215,6 +207,15 @@ class Unit {
         this.destroy();
         return;
       }
+    }
+
+    // pinned down by enemy contact: hold position, but orders stay queued so movement
+    // resumes automatically once the fight lets up
+    this.inContact = units.some(
+      (other) => other.belongsTo !== this.belongsTo && areTwoUnitsInContact(this, other),
+    );
+    if (this.inContact) {
+      return;
     }
 
     const newActions = [];
@@ -807,4 +808,24 @@ function addCommasToNumber(num) {
     num = num.slice(0, i) + "," + num.slice(i);
   }
   return num;
+}
+
+function scrollToUnitInList(unit) {
+  if (unit.belongsTo !== playingAs) return;
+  const myUnits = units.filter((u) => u.belongsTo === playingAs);
+  myUnits.sort((a, b) => {
+    if (a.isGuardUnit && !b.isGuardUnit) return 1;
+    if (!a.isGuardUnit && b.isGuardUnit) return -1;
+    return 0;
+  });
+  const index = myUnits.findIndex((u) => u.name === unit.name);
+  const el = document.getElementsByClassName("unit-item")[index];
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function orderMoveForUnit(unit, targetX, targetY) {
+  unit.proposedActions = unit.proposedActions.filter((action) => action.type !== "move");
+  unit.addProposedAction({ type: "move", targetX: targetX, targetY: targetY });
+  updateUnitsListUI();
+  displayRoundCost();
 }

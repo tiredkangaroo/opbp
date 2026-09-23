@@ -56,6 +56,7 @@ let mouseObj = null;
 let maximumFrameRate = 50;
 
 let gameSystemsInitialized = false;
+let selectedUnit = null;
 
 async function preload() {
   preloadFlags();
@@ -242,9 +243,40 @@ function mouseInBox(bx, by, bw, bh) {
   return pointInBox(...vgrid(mouseX, mouseY), bx, by, bw, bh);
 }
 function mouseClicked() {
+  if (playingState !== "playing") {
+    return;
+  }
   if (mouseClickHandler) {
     mouseClickHandler();
+    return;
   }
+  if (rounds.inProgress) {
+    // no orders mid-round
+    return;
+  }
+  const virtual = vgrid(mouseX, mouseY);
+  const clickedUnit = [...units]
+    .reverse()
+    .find((u) => u.belongsTo === playingAs && pointInUnitBox(virtual[0], virtual[1], u));
+  if (clickedUnit) {
+    selectedUnit = clickedUnit;
+    scrollToUnitInList(clickedUnit);
+    return;
+  }
+  if (selectedUnit && pointInMap(mouseX, mouseY)) {
+    const pos = vgrid(mouseX, mouseY);
+    orderMoveForUnit(selectedUnit, Math.round(pos[0]), Math.round(pos[1]));
+    // keep the unit selected so you can chain/redo orders
+    return;
+  }
+  selectedUnit = null;
+}
+
+function togglePanelCollapse(btn) {
+  const panel = btn.closest(".panel");
+  if (!panel) return;
+  const collapsed = panel.classList.toggle("collapsed");
+  btn.textContent = collapsed ? "+" : "–";
 }
 function drawCursor() {
   if (mouseClickHandler) {

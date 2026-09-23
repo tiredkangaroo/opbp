@@ -182,3 +182,21 @@ cursor: not-allowed;
     color: #ffd45a;
     font-weight: bold;
 }
+
+.panel h3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 0 4px 0;
+}
+.collapse-btn {
+    margin-left: 8px;
+    font-weight: bold;
+}
+.panel.collapsed > *:not(h3) {
+    display: none;
+}
+.panel.collapsed {
+    height: auto !important;
+    overflow: visible !important;
+}

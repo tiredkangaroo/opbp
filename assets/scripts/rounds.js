@@ -35,6 +35,7 @@ class Rounds {
       console.log("Cannot advance round, round already in progress.");
       return;
     }
+    selectedUnit = null;
     document.getElementById("deploy-unit-position-display").innerText = "(not selected)";
 
     const roundCost = calculateRoundCost(playingAs);
@@ -140,11 +141,7 @@ class Rounds {
 
     // draw every conflict
     for (const conflict of this.conflicts) {
-      // remove any movement proposals and any animation to avoid moving during conflict
-      conflict.myUnit.proposedActions = conflict.myUnit.proposedActions.filter((action) => action.type !== "move");
-      conflict.enemyUnit.proposedActions = conflict.enemyUnit.proposedActions.filter(
-        (action) => action.type !== "move",
-      );
+      // freeze the units in place while fighting (movement orders stay queued)
       conflict.myUnit.noMoveAnimation();
       conflict.enemyUnit.noMoveAnimation();
 
@@ -179,10 +176,6 @@ class Rounds {
             const newConflict = new Conflict(unit, otherUnit);
             this.wgAdd();
             this.conflicts.push(newConflict);
-
-            // remove any proposed movements for these units this round
-            unit.proposedActions = unit.proposedActions.filter((action) => action.type !== "move");
-            otherUnit.proposedActions = otherUnit.proposedActions.filter((action) => action.type !== "move");
           }
         }
       }
@@ -371,8 +364,11 @@ function calculateRoundCost(country) {
   let totalCost = 0;
 
   for (const u of units.filter((u) => u.belongsTo === country)) {
-    // heavier exponential so moving big armies hurts
-    const unitMovement = u.getProposedMovementDistanceThisRound();
+    u.inContact = units.some(
+      (other) => other.belongsTo !== u.belongsTo && areTwoUnitsInContact(u, other),
+    );
+    const pinned = u.inContact && u.proposedActions.some((a) => a.type === "move");
+    const unitMovement = pinned ? 0 : u.getProposedMovementDistanceThisRound();
 
     totalCost += calculateUpkeepCostForUnits([u]) + calculateMovementCost(u, unitMovement);
   }
