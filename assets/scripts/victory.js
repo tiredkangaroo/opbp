@@ -8,14 +8,22 @@ const cityData = [
   { name: "Brest", lon: -4.49, lat: 48.39, vp: 6, belongsTo: "france" },
   { name: "Nice", lon: 7.27, lat: 43.71, vp: 6, belongsTo: "france" },
   { name: "Berlin", lon: 13.4, lat: 52.52, vp: 30, belongsTo: "germany" },
-  { name: "Munich", lon: 11.58, lat: 48.14, vp: 15, belongsTo: "germany" },
+  { name: "Munich", lon: 11.58, lat: 48.14, vp: 10, belongsTo: "germany" },
   { name: "Hamburg", lon: 10.0, lat: 53.55, vp: 15, belongsTo: "germany" },
   { name: "Cologne", lon: 6.96, lat: 50.94, vp: 12, belongsTo: "germany" },
   { name: "Frankfurt", lon: 8.68, lat: 50.11, vp: 10, belongsTo: "germany" },
   { name: "Dresden", lon: 13.74, lat: 51.05, vp: 10, belongsTo: "germany" },
-  { name: "Stuttgart", lon: 9.18, lat: 48.78, vp: 8, belongsTo: "germany" },
+  { name: "Stuttgart", lon: 9.18, lat: 48.78, vp: 6, belongsTo: "germany" },
   { name: "Nuremberg", lon: 11.08, lat: 49.45, vp: 6, belongsTo: "germany" },
 ];
+
+// both nations start with an equal number of victory points (99 each:
+// france 30+15+12+12+10+8+6+6, germany 30+10+15+12+10+10+6+6)
+const VICTORY_POINT_THRESHOLD = 150;
+
+function startingVictoryPointsFor(country) {
+  return cityData.filter((c) => c.belongsTo === country).reduce((s, c) => s + c.vp, 0);
+}
 
 function mapProject(lon, lat) {
   const [x, y] = project(lon, lat);
@@ -59,12 +67,11 @@ function victoryPointIncomeFor(country) {
   return total;
 }
 
-function baseIncome(roundNum) {
-  return 35 + roundNum * 2;
-}
-
 function countryIncome(country, roundNum) {
-  return Math.round((baseIncome(roundNum) + victoryPointIncomeFor(country)) * incomeMultiplierFor(country));
+  // income is earned purely from the victory points you control, so it
+  // grows when you seize enemy cities and dries up as your own fall.
+  const vps = victoryPointIncomeFor(country);
+  return Math.round(vps * (1.5 + roundNum * 0.08) * incomeMultiplierFor(country));
 }
 
 function logCityCaptures() {

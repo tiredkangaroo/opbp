@@ -235,8 +235,8 @@ class Opponent {
     if (this.resources <= MIN_COST * 4) {
       return 0; // can't afford enough
     }
-    if (this.myUnits(true, true).length >= 12) {
-      return 0; // don't deploy if we already have 12 units, otherwise it gets really laggy and too crowded
+    if (this.myUnits(true, true).length >= 24) {
+      return 0; // don't deploy if we already have 24 units, otherwise it gets really laggy and too crowded
     }
     // between a quarter and a third of current resources except size and speed
     const size = Math.min(12000, Math.floor(Math.pow(((this.resources / MAX_COST) * 10000) / randomInt(1, 2), 0.85)) || 100);
@@ -258,7 +258,7 @@ class Opponent {
     }
     console.log("current resources", this.resources, "cost", cost);
     this.resources -= cost;
-    addManpower(this.playingas, -size);
+    spendManpower(this.playingas, size);
     const newUnit = new Unit(
       x,
       y,
@@ -376,7 +376,7 @@ class Opponent {
       return 0; // no able-bodied citizens to raise
     }
     this.addResources(-c);
-    addManpower(this.playingas, -sze);
+    spendManpower(this.playingas, sze);
     const nU = new Unit(
       capitalCoords[1] + randomInt(-30, 30),
       capitalCoords[2] + randomInt(-30, 30),
@@ -510,7 +510,7 @@ class Opponent {
       units.push(newUnit);
       this.unitsEverCreated++;
       this.addResources(-getUnitDeployCost(6700, 14, 5, 5));
-      addManpower(this.playingas, -6700);
+      spendManpower(this.playingas, 6700);
       console.log("deployed new unit near french capital for opponent:", newUnit);
 
       // move unit towards the target unit

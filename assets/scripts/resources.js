@@ -65,20 +65,22 @@ function drawResources() {
   textSize(11);
   textStyle(NORMAL);
   text(
-    `/ ${addCommasToNumber(mpMax)} · +${MANPOWER_GROWTH_PER_ROUND}/round`,
+    `/ ${addCommasToNumber(mpMax)} · +${addCommasToNumber(Math.round(MANPOWER_GROWTH_PER_ROUND * victoryPointManpowerRatio(playingAs)))}/round`,
     bx + 14 + textWidth(`${addCommasToNumber(mp)}`) + 14,
     by + 109,
   );
 
-  // capital strikes
+  // victory points progress toward the win threshold
   const strikeX = bx + 218;
+  const myVP = victoryPointIncomeFor(playingAs);
+  const enemyVP = victoryPointIncomeFor(opponent.playingas);
   fill(148, 160, 180);
   textSize(9);
   textStyle(BOLD);
-  text("CAPITAL PRESSURE", strikeX, by + 10);
+  text("VICTORY POINTS", strikeX, by + 10);
 
-  drawStrikeBar(strikeX, by + 24, capitalOf(playingAs), rounds.capitalHeld.player, 10, playingAs === "france" ? [58, 95, 158] : [148, 62, 54]);
-  drawStrikeBar(strikeX, by + 54, `${countryName(opponent.playingas)}`, rounds.capitalHeld.op, 10, playingAs === "france" ? [148, 62, 54] : [58, 95, 158]);
+  drawVPBar(strikeX, by + 24, `${countryName(playingAs)}`, myVP, playingAs === "france" ? [58, 95, 158] : [148, 62, 54]);
+  drawVPBar(strikeX, by + 54, `${countryName(opponent.playingas)}`, enemyVP, playingAs === "france" ? [148, 62, 54] : [58, 95, 158]);
 
   if (debug) {
     fill(148, 160, 180);
@@ -90,7 +92,7 @@ function drawResources() {
   textAlign(LEFT, CENTER);
 }
 
-function drawStrikeBar(x, y, label, strikes, max, color) {
+function drawVPBar(x, y, label, vps, color) {
   push();
   noStroke();
   fill(255, 255, 255, 220);
@@ -100,18 +102,16 @@ function drawStrikeBar(x, y, label, strikes, max, color) {
   text(label, x, y - 4);
 
   const barW = 110;
-  const segW = barW / max;
-  for (let i = 0; i < max; i++) {
-    if (i < strikes) {
-      fill(color[0], color[1], color[2], 235);
-    } else {
-      fill(255, 255, 255, 26);
-    }
-    rect(x + i * segW, y + 2, segW - 1.2, 8, 2);
+  const frac = Math.min(vps / VICTORY_POINT_THRESHOLD, 1);
+  fill(255, 255, 255, 26);
+  rect(x, y + 2, barW, 8, 2);
+  if (frac > 0) {
+    fill(color[0], color[1], color[2], 235);
+    rect(x, y + 2, Math.max(barW * frac, 3), 8, 2);
   }
   fill(255, 255, 255, 235);
   textSize(9);
-  text(`${strikes}/${max}`, x + barW + 6, y + 6);
+  text(`${Math.round(vps)} / ${VICTORY_POINT_THRESHOLD}`, x + barW + 6, y + 6);
   pop();
 }
 

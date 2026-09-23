@@ -7,12 +7,6 @@ class Rounds {
     this.conflicts = [];
     this.historicalConflicts = []; // list of all conflicts that have occurred
 
-    this.capitalHeld = {
-      player: 0,
-      op: 0,
-    };
-    this.capitalThreshold = 10; // 10 rounds of control of a capital to win
-
     this.battleLog = [];
   }
 
@@ -132,45 +126,31 @@ class Rounds {
     frontlineYs = calculateFrontline();
     frontlineYsRoundNumber = this.roundNumber;
 
-    // capital control
-    const playerCapital = capitals[playingAs];
-    const opponentCapital = capitals[opponent.playingas];
-    const playerHeld = isInFrontOfFrontline(playerCapital[1], playerCapital[2], playingAs);
-    const opponentHeld = isInFrontOfFrontline(
-      opponentCapital[1],
-      opponentCapital[2],
-      opponent.playingas,
-    );
+    // victory point victory: control enough of the map's cities and the
+    // enemy's war effort collapses
+    const myVPs = victoryPointIncomeFor(playingAs);
+    const enemyVPs = victoryPointIncomeFor(opponent.playingas);
+    finalVictoryPoints.player = myVPs;
+    finalVictoryPoints.opponent = enemyVPs;
 
-    capitalsUnderForeignOccupation = [];
-    this.capitalHeld.player = playerHeld ? this.capitalHeld.player + 1 : 0;
-    this.capitalHeld.op = opponentHeld ? this.capitalHeld.op + 1 : 0;
-
-    if (playerHeld) capitalsUnderForeignOccupation.push(playingAs);
-    if (opponentHeld) capitalsUnderForeignOccupation.push(opponent.playingas);
-
-    if (this.capitalHeld.player >= this.capitalThreshold) {
-      this.log(`Enemy forces have held ${capitalOf(playingAs)} for ${this.capitalThreshold} rounds.`, true);
-      playingState = "lost-capital";
-      units = [];
-    }
-    if (this.capitalHeld.op >= this.capitalThreshold) {
+    if (myVPs >= VICTORY_POINT_THRESHOLD) {
       this.log(
-        `You have held ${capitalOf(opponent.playingas)} for ${this.capitalThreshold} rounds.`,
+        `You now control ${Math.round(myVPs)} victory points. ${countryName(opponent.playingas)} sues for peace.`,
         true,
       );
-      playingState = "won-capital";
+      playingState = "won-victorypoints";
       units = [];
     }
-
-    const playingAsCasualties = playingAs === "france" ? french_casualties : german_casualties;
-    const opponentCasualties = playingAs === "france" ? german_casualties : french_casualties;
-    if (playingAsCasualties > 400000 && opponentCasualties < playingAsCasualties / 2) {
-      playingState = "lost-casualties";
+    if (enemyVPs >= VICTORY_POINT_THRESHOLD) {
+      this.log(
+        `${countryName(opponent.playingas)} now controls ${Math.round(enemyVPs)} victory points. Your war effort collapses.`,
+        true,
+      );
+      playingState = "lost-victorypoints";
       units = [];
-    } else if (opponentCasualties > 400000 && playingAsCasualties < opponentCasualties / 2) {
-      playingState = "won-casualties";
-      units = [];
+    }
+    if (playingState !== "playing") {
+      return;
     }
 
     // income & logistics for the new round

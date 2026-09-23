@@ -24,15 +24,16 @@
     </p>
     <h1>how do i win/lose?</h1>
     <p>
-      you win by taking control of your opponent's capital city for 10 rounds. you may also win by inflicting double the
-      casualties on your opponent once your opponent has taken over a million casualties. <br /><br />
-      you lose if your opponent does the same.
+      the war is fought over victory points. every city is worth a number of victory points and both
+      nations start with an equal share (99 each). you win by controlling more than half the map —
+      <b>150 victory points</b> — which collapses the enemy's war economy. you lose if the enemy does
+      the same to you.
     </p>
     <h1>ok, what's going on?</h1>
     <img src="assets/help/1.png" alt="help diagram" style="width: 100%; height: auto" />
     <h2>the game</h2>
     we're playing as france, the country in blue. each country starts with six guard units surrounding their capital
-    city.<br />
+    city and a small garrison guard posted on every victory point city.<br />
     <h2>units</h2>
     <p>
         each unit has a size, speed, attack, and stamina. all of these stats play a role in how the unit performs on the battlefield.
@@ -59,7 +60,6 @@
     <ul>
       <li>the frontline is the large black line.</li>
       <li>this line changes as your units move around the map.</li>
-      <li>you lose by having your capital behind the frontline for 10 consecutive rounds.</li>
     </ul>
     this line is subject to a lot of change, both in the way it's visually represented, and it's signficance.
     <h2>rounds</h2>
@@ -67,18 +67,19 @@
         <li>the game is turn-based, and each turn is a round</li>
         <li>each round, you can deploy units, move units, and merge units</li>
         <li>at the end of each round, you gain resources, but you also lose some resources (see the Resources section)</li>
-        <li>at the end of each round, if your capital is behind the frontline, you capital has been held. if you get 10 strikes, you lose.</li>
+        <li>victory points are tallied when a round ends — hold 150 of them to win the war</li>
     </ul>
     <h2>resources</h2>
     <ul>
         <li>resources are shown in the bottom left corner</li>
         <li>resources are used to deploy units, maintain units (upkeep), and move units</li>
-        <li>every round you earn income from the Victory Point cities you control (capture cities to steal income)</li>
+        <li>income every round is purely based on the Victory Point cities you control (capture cities to steal income)</li>
         <li>resources also pay for fortresses and doctrines (see below)</li>
     </ul>
-    <h2>victory points, supply, fortresses & doctrines</h2>
+    <h2>victory points, manpower, supply, fortresses & doctrines</h2>
     <ul>
-        <li>cities on the map generate income for whoever's army controls them</li>
+        <li>cities generate income for whoever's army controls them; every city starts with a small garrison guard</li>
+        <li>your effective manpower equals <code>victory points controlled ÷ starting victory points</code> — it starts at 1&times;, grows as you conquer, shrinks if you lose ground</li>
         <li>units draw supply lines to their capital; deep pushes weaken and encirclement starves units (red ring)</li>
         <li>build fortresses behind your frontline to anchor defenses; france starts with the Maginot Line</li>
         <li>the Doctrines panel lets you adopt up to two doctrines (Defense in Depth, Blitzkrieg, Industrial Mobilization, Logistics)</li>

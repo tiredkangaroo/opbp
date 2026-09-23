@@ -378,7 +378,7 @@ function deployUnit() {
     return;
   }
   resources -= cost;
-  addManpower(playingAs, -size);
+  spendManpower(playingAs, size);
 
   units.push(new Unit(x, y, getUnitName(unitsEverDeployed, playingAs), 1, size, speed, attack, stamina, playingAs));
 

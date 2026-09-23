@@ -9,14 +9,19 @@ let playingAs = "france";
 
 let debug = new URLSearchParams(window.location.search).get("debug") === "true";
 
-let playingState = "playing"; // can be "playing", "won-capital", "lost-capital", "won-casualties", "lost-casualties"
+let playingState = "playing"; // can be "playing", "won-victorypoints", "lost-victorypoints"
+
+const GARRISON_SIZE = 500;
+
+// snapshotted at the moment the war ends (units are wiped, so VPs can't be
+// recomputed afterward)
+let finalVictoryPoints = { player: 0, opponent: 0 };
 
 // capitals in virtual grid coordinates
 const capitals = {
   france: ["Paris", 544, 401],
   germany: ["Berlin", 1029, 160],
 };
-let capitalsUnderForeignOccupation = [];
 
 const speedPixelConversion = 5.8;
 
@@ -84,6 +89,23 @@ function setup() {
       );
     }
   }
+
+  // small garrison guards posted on each victory point city
+  for (const c of cityData) {
+    units.push(
+      new Unit(
+        c.x + 8,
+        c.y + 2,
+        `${c.name} Garrison Guard`,
+        1,
+        GARRISON_SIZE,
+        12,
+        4,
+        3,
+        c.belongsTo,
+      ),
+    );
+  }
   updateUnitsListUI();
 }
 
@@ -125,8 +147,6 @@ function showEndScreen() {
 
   const myUnits = units.filter((u) => u.belongsTo === playingAs);
   const mySize = myUnits.reduce((a, u) => a + u.size, 0);
-  const myCas = playingAs === "france" ? french_casualties : german_casualties;
-  const opCas = playingAs === "france" ? german_casualties : french_casualties;
   const roundNum = rounds.roundNumber;
 
   let outcome = "won";
@@ -135,18 +155,14 @@ function showEndScreen() {
   const isWin = playingState.startsWith("won");
   outcome = isWin ? "won" : "lost";
   title = isWin ? "VICTORY" : "DEFEAT";
+  const myVPs = finalVictoryPoints.player;
+  const enemyVPs = finalVictoryPoints.opponent;
   switch (playingState) {
-    case "won-capital":
-      text = `The capital of ${countryName(opponent.playingas)} is under your flag. The enemy command has collapsed.`;
+    case "won-victorypoints":
+      text = `You control ${Math.round(myVPs)} victory points. ${countryName(opponent.playingas)} has lost its industrial heartland and sues for peace.`;
       break;
-    case "lost-capital":
-      text = `${countryName(opponent.playingas)} captured ${capitalOf(playingAs)}. The war is over.`;
-      break;
-    case "won-casualties":
-      text = `You inflicted catastrophic casualties on ${countryName(opponent.playingas)}, forcing them to sue for peace.`;
-      break;
-    case "lost-casualties":
-      text = `Your armies were bled white. ${countryName(opponent.playingas)} accepted your unconditional surrender.`;
+    case "lost-victorypoints":
+      text = `${countryName(opponent.playingas)} controls ${Math.round(enemyVPs)} victory points. Your own cities are in enemy hands, and the war is over.`;
       break;
     default:
       text = "";
@@ -159,8 +175,8 @@ function showEndScreen() {
     <p>${text}</p>
     <div class="stats">
       <div><div class="num">${roundNum}</div><div class="lbl">Rounds</div></div>
-      <div><div class="num">${addCommasToNumber(myCas)}</div><div class="lbl">Your casualties</div></div>
-      <div><div class="num">${addCommasToNumber(opCas)}</div><div class="lbl">Enemy casualties</div></div>
+      <div><div class="num">${Math.round(myVPs)} / ${VICTORY_POINT_THRESHOLD}</div><div class="lbl">Your Victory Points</div></div>
+      <div><div class="num">${Math.round(enemyVPs)} / ${VICTORY_POINT_THRESHOLD}</div><div class="lbl">Enemy Victory Points</div></div>
       <div><div class="num">${addCommasToNumber(mySize)}</div><div class="lbl">Troops fielded</div></div>
     </div>
     <div class="actions">
@@ -184,16 +200,6 @@ function countryName(country) {
       return "Germany";
     default:
       return country;
-  }
-}
-function capitalOf(country) {
-  switch (country) {
-    case "france":
-      return "Paris";
-    case "germany":
-      return "Berlin";
-    default:
-      return "Unknown Capital";
   }
 }
 
