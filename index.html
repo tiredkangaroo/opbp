@@ -3,49 +3,106 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>opbp</title>
+    <title>opbp — Operation Barbarossa Project</title>
+    <link rel="icon" href="data:," />
     <style>
+      :root {
+        --bg: #0b0f19;
+        --panel: rgba(22, 30, 46, 0.9);
+        --gold: #d9a441;
+        --muted: #94a2b8;
+        --text: #e3e7ee;
+      }
+      * { box-sizing: border-box; }
       html {
         width: 100%;
         height: 100%;
         display: flex;
-        flex-direction: column;
         justify-content: center;
         align-items: center;
+        background: var(--bg);
+        background-image: radial-gradient(ellipse at 50% -20%, #14203a 0%, var(--bg) 60%);
+        font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
       }
       body {
-        margin: 0;
-        padding: 0;
+        color: var(--text);
         text-align: center;
+        max-width: 640px;
+        padding: 40px 20px;
       }
-      #nav-links {
-        font-size: 1.5em;
+      .monogram {
+        font-size: 13px;
+        letter-spacing: 0.4em;
+        color: var(--muted);
+        margin-bottom: 4px;
       }
       h1 {
-        font-size: 2.5em;
+        font-size: 64px;
+        margin: 0 0 6px 0;
+        letter-spacing: 0.12em;
+        color: var(--gold);
+        font-weight: 800;
       }
-      #title-section {
-        margin-bottom: 24px;
+      .tagline {
+        color: var(--muted);
+        font-size: 15px;
+        margin: 0 0 28px 0;
       }
+      .tagline b { color: var(--text); }
+      #nav-links {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+      }
+      .nav-btn {
+        display: block;
+        padding: 16px 20px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        border: 1px solid rgba(155, 170, 195, 0.2);
+        background: var(--panel);
+        color: var(--text);
+        transition: border-color 0.15s ease, transform 0.08s ease;
+      }
+      .nav-btn:first-child {
+        background: linear-gradient(180deg, #f0c564, #d9a441 60%, #b98a2e);
+        color: #1a1306;
+        border-color: #8a651f;
+      }
+      .nav-btn:hover {
+        border-color: var(--gold);
+        transform: translateY(-1px);
+      }
+      .nav-btn small {
+        display: block;
+        font-weight: 400;
+        font-size: 13px;
+        opacity: 0.85;
+        margin-top: 2px;
+        letter-spacing: 0.02em;
+      }
+      .footer { margin-top: 26px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+      .footer b { color: var(--gold); }
     </style>
   </head>
-  <body
-    style="
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    "
-  >
-    <div id="title-section">
-      <h1>opbp</h1>
-      <p>strongly reccomend you read the help before playing!</p>
+  <body>
+    <p class="monogram">THE OPERATION BARBAROSSA PROJECT</p>
+    <h1>OPBP</h1>
+    <p class="tagline">
+      A turn-based <b>strategy wargame</b>. Command France. Break Germany. Capture Berlin.
+      <br />Strongly recommend reading the strategy guide first.
+    </p>
+    <div id="nav-links">
+      <a class="nav-btn" href="game.html">Play Game <small>Take command of the French army aboard the frontline</small></a>
+      <a class="nav-btn" href="help.html">Strategy Guide <small>How to deploy, move, besiege and win</small></a>
     </div>
-    <div id="nav-links" style="display: flex; flex-direction: column; gap: 12px; text-align: center">
-      <a href="game.html">Play Game</a>
-      <a href="help.html">Help</a>
-    </div>
+    <p class="footer">
+      Two capitals. One frontier. Ten rounds of occupation to win the war.<br />
+      Deploy armies, hold the line, cut supply lines, and <b>shell the enemy with artillery</b>.
+    </p>
   </body>
 </html>

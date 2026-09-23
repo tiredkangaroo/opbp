@@ -11,20 +11,26 @@ class Fort {
     this.strength = 100;
   }
   draw() {
-    const a = 9;
+    const a = 11;
+    const [vx, vy] = vgrid(this.x, this.y);
     push();
     rectMode(CENTER);
-    fill(70, 66, 60);
-    stroke(0);
-    strokeWeight(1.5);
-    rect(this.x, this.y, a * 2, a * 2, 2);
-    if (this.belongsTo === "france") {
-      fill(0, 85, 164);
-    } else {
-      fill(221, 0, 0);
-    }
+    // outer wall
+    stroke(10, 12, 16, 200);
+    strokeWeight(2);
+    fill(56, 54, 50);
+    rect(vx, vy, a * 2, a * 2, 3);
+    // star pennant
     noStroke();
-    rect(this.x, this.y - a / 2, a * 2, a);
+    if (this.belongsTo === "france") {
+      fill(58, 95, 158);
+    } else {
+      fill(148, 62, 54);
+    }
+    rect(vx, vy - a, a * 2, a);
+    // inner courtyard dot
+    fill(230, 226, 210);
+    circle(vx, vy - a / 2, 3);
     pop();
   }
 }
@@ -38,49 +44,47 @@ function fortCostNow() {
 
 function selectFortPosition() {
   mouseClickHandler = null;
-  setTimeout(() => {
-    document.getElementById("fort-position-display").textContent = "(click on map)";
-    mouseClickHandler = () => {
-      if (!pointInMap(mouseX, mouseY)) {
-        alert("Please select a position on the map!");
+  document.getElementById("fort-position-display").textContent = "(click on map)";
+  mouseClickHandler = () => {
+    if (!pointInMap(mouseX, mouseY)) {
+      toast("Please select a position on the map!");
+      return;
+    }
+    const pos = vgrid(mouseX, mouseY);
+    const px = Math.round(pos[0]);
+    const py = Math.round(pos[1]);
+    if (inWhatCountry(px, py) !== playingAs) {
+      toast("Fortresses can only be built in your own territory!");
+      return;
+    }
+    if (frontlineYs !== null && isInFrontOfFrontline(px, py, playingAs)) {
+      toast("Fortresses must be built behind the frontline!");
+      return;
+    }
+    for (const f of forts) {
+      if (f.belongsTo === playingAs && Math.hypot(f.x - px, f.y - py) < 40) {
+        toast("Too close to an existing fortress!");
         return;
       }
-      const pos = vgrid(mouseX, mouseY);
-      const px = Math.round(pos[0]);
-      const py = Math.round(pos[1]);
-      if (inWhatCountry(px, py) !== playingAs) {
-        alert("Fortresses can only be built in your own territory!");
-        return;
-      }
-      if (frontlineYs !== null && isInFrontOfFrontline(px, py, playingAs)) {
-        alert("Fortresses must be built behind the frontline!");
-        return;
-      }
-      for (const f of forts) {
-        if (f.belongsTo === playingAs && Math.hypot(f.x - px, f.y - py) < 40) {
-          alert("Too close to an existing fortress!");
-          return;
-        }
-      }
-      selectedFortPosition = [px, py];
-      document.getElementById("fort-position-display").textContent = `(${px}, ${py})`;
-      mouseClickHandler = null;
-    };
-  }, 250);
+    }
+    selectedFortPosition = [px, py];
+    document.getElementById("fort-position-display").textContent = `(${px}, ${py})`;
+    mouseClickHandler = null;
+  };
 }
 
 function buildFort() {
   if (!selectedFortPosition) {
-    alert("Select a position for the fortress first!");
+    toast("Select a position for the fortress first!");
     return;
   }
   const cost = fortCostNow();
   if (resources < cost) {
-    alert("Not enough resources to build a fortress!");
+    toast("Not enough resources to build a fortress!");
     return;
   }
   if (forts.filter((f) => f.belongsTo === playingAs).length >= MAX_FORTS) {
-    alert("You have built too many fortresses.");
+    toast("You have built too many fortresses.");
     return;
   }
   resources -= cost;

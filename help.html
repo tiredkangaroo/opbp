@@ -3,109 +3,194 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Help</title>
+    <title>opbp — Strategy Guide</title>
+    <link rel="icon" href="data:," />
     <style>
+      :root {
+        --bg: #0b0f19;
+        --panel: rgba(22, 30, 46, 0.85);
+        --gold: #d9a441;
+        --muted: #94a2b8;
+        --text: #e3e7ee;
+      }
+      * { box-sizing: border-box; }
       html {
         display: flex;
         justify-content: center;
+        background: var(--bg);
+        background-image: radial-gradient(ellipse at 50% -20%, #14203a 0%, var(--bg) 60%);
+        min-height: 100%;
+        font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
       }
       body {
-        width: 50%;
+        width: 100%;
+        max-width: 780px;
+        padding: 28px 20px 60px 20px;
+        color: var(--text);
+        line-height: 1.6;
+      }
+      nav {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 26px;
+      }
+      nav a {
+        color: var(--gold);
+        text-decoration: none;
+        font-weight: 700;
+        padding: 6px 14px;
+        border: 1px solid rgba(217, 164, 65, 0.5);
+        border-radius: 999px;
+        font-size: 14px;
+      }
+      nav a:hover { background: rgba(217, 164, 65, 0.12); }
+      nav span { margin-left: auto; color: var(--muted); font-size: 12px; letter-spacing: 0.2em; }
+      h1 {
+        color: var(--gold);
+        font-size: 34px;
+        margin: 0 0 6px 0;
+        letter-spacing: 0.08em;
+      }
+      h2 {
+        color: var(--gold);
+        font-size: 19px;
+        margin-top: 30px;
+        border-bottom: 1px solid rgba(155, 170, 195, 0.18);
+        padding-bottom: 4px;
+      }
+      img, video { width: 100%; height: auto; border-radius: 10px; border: 1px solid rgba(155, 170, 195, 0.2); }
+      li { margin: 4px 0; }
+      code, kbd {
+        background: rgba(155, 170, 195, 0.14);
+        border-radius: 5px;
+        padding: 1px 6px;
+        font-size: 0.92em;
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      .tip {
+        border: 1px solid rgba(217, 164, 65, 0.45);
+        background: rgba(217, 164, 65, 0.08);
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin: 14px 0;
+        font-size: 14px;
       }
     </style>
   </head>
   <body>
+    <nav>
+      <span>OPBP</span>
+      <a href="index.html">Main Menu</a>
+      <a href="game.html">Play Now</a>
+    </nav>
     <h1>what is opbp?</h1>
     <p>
       this game is a <b>work in progress</b>! there are significant changes to game mechanics to come. opbp is a
       turn-based (almost) strategy game where you fight a war against your opponent.
     </p>
-    <h1>demo gameplay?</h1>
-    <p>yeah! check it out below. the demo game was 23 minutes long (video has been sped up 10x).</p>
-    <video controls style="width: 100%; height: auto">
-      <source src="assets/help/demo.mov" />
-      your browser does not support the video tag.
-    </video>
-    <h1>why is it called opbp?</h1>
-    <p>
-      this game was originally built in godot and it was titled "opb" because it was going to be a game where you play
-      <a href="https://en.wikipedia.org/wiki/Operation_Barbarossa">Operation Barbarossa</a>. i chose to scale back the
-      scope of the game, and when i switched to p5, i added a "p" because it was made in p5. <br /><br />
-      the name is not final and i am open to suggestions!
-    </p>
+
     <h1>how do i win/lose?</h1>
     <p>
       you win by taking control of your opponent's capital city for 10 rounds. you may also win by inflicting double the
       casualties on your opponent once your opponent has taken over a million casualties. <br /><br />
       you lose if your opponent does the same.
     </p>
+
     <h1>ok, what's going on?</h1>
-    <img src="assets/help/1.png" alt="help diagram" style="width: 100%; height: auto" />
+    <img src="assets/help/1.png" alt="help diagram" />
     <h2>the game</h2>
-    we're playing as france, the country in blue. each country starts with six guard units surrounding their capital
-    city.<br />
+    <p>we're playing as <b>france</b>, the country in blue. each country starts with a ring of guard units surrounding
+        its capital city.</p>
+    <div class="tip">
+      <b>Quick start:</b> click a unit on the map, then click where you want it to march. Click <b>Advance Round</b>
+      (or press <kbd>N</kbd>) to see it play out. Press <kbd>Esc</kbd> to cancel any selection.</div>
+
     <h2>units</h2>
-    <p>
-        each unit has a size, speed, attack, and stamina. all of these stats play a role in how the unit performs on the battlefield.
-        <ul>
-            <li>size is how many troops are in the unit</li>
-            <li>speed is how fast a unit can move across the map</li>
-            <li>attack is how much damage a unit can inflict on an enemy unit</li>
-            <li>stamina affects how the unit degrades over time and in battle</li>
-        </ul>
-        about a unit:
-        <ul>
-            <li>they can move across the map</li>
-            <li>try clicking a unit on the map, then clicking where you want it to go</li>
-            <li>the move, split, merge and surrender buttons in the Your Units panel work too</li>
-            <li>click a unit in Your Units to jump to it on the map</li>
-            <li>they can attack enemy units when in contact</li>
-            <li>you can merge nearby units to form a larger unit</li>
-            <li>if a unit is attacked mid-move it holds position to fight, but its move order stays queued and it continues once the fight lets up</li>
-            <li>they don't always cover the target in just one round</li>
-            <li>they degrade over time if in enemy territory and in battle</li>
-            <li>they cost resources to deploy, maintain, and move</li>
-            <li>upkeep for a unit is greater when it is in enemy territory</li>
-            <li>it costs larger units more to move and upkeep</li>
-            <li>hovering over a unit shows it in the Your Units panel</li>
-        </ul>
-    </p>
+    <p>each unit has a <b>size</b>, <b>speed</b>, <b>attack</b>, and <b>stamina</b>. all of these stats play a role in how
+        the unit performs on the battlefield.</p>
+    <ul>
+        <li>size is how many troops are in the unit</li>
+        <li>speed is how fast a unit can move across the map</li>
+        <li>attack is how much damage a unit can inflict on an enemy unit</li>
+        <li>stamina affects how the unit degrades over time and in battle</li>
+    </ul>
+    <p>about a unit:</p>
+    <ul>
+        <li>they can move across the map</li>
+        <li>they can attack enemy units when in contact</li>
+        <li>you can merge nearby units to form a larger unit (or split huge ones)</li>
+        <li>they don't always cover the target in just one round</li>
+        <li>they degrade over time if in enemy territory and in battle</li>
+        <li>they cost resources to deploy, maintain, and move</li>
+        <li>upkeep for a unit is greater when it is in enemy territory</li>
+        <li>it costs larger units more to move and upkeep</li>
+        <li>hovering over a unit shows it in the Your Units panel</li>
+    </ul>
+
     <h2>the frontline</h2>
     <ul>
-      <li>the frontline is the large black line.</li>
-      <li>this line changes as your units move around the map.</li>
-      <li>you lose by having your capital behind the frontline for 10 consecutive rounds.</li>
+        <li>the frontline is the large black line.</li>
+        <li>this line changes as your units move around the map.</li>
+        <li>you lose by having your capital behind the frontline for 10 consecutive rounds.</li>
     </ul>
-    this line is subject to a lot of change, both in the way it's visually represented, and it's signficance.
+
     <h2>rounds</h2>
     <ul>
         <li>the game is turn-based, and each turn is a round</li>
-        <li>each round, you can deploy units, move units, and merge units</li>
-        <li>at the end of each round, you gain resources, but you also lose some resources (see the Resources section)</li>
-        <li>at the end of each round, if your capital is behind the frontline, you capital has been held. if you get 10 strikes, you lose.</li>
+        <li>each round, you can deploy units, move units, shell the enemy, and merge units</li>
+        <li>orders are issued in the <b>planning phase</b>; press <kbd>N</kbd> to execute them</li>
+        <li>at the end of each round, you gain resources, but you also lose some resources for upkeep and movement</li>
+        <li>if your capital is behind the frontline when a round ends, your capital has been held — 10 strikes and you lose</li>
     </ul>
+
     <h2>resources</h2>
     <ul>
         <li>resources are shown in the bottom left corner</li>
-        <li>resources are used to deploy units, maintain units (upkeep), move units, build fortresses, and adopt doctrines</li>
-        <li>you gain resources every round from your Victory Points: the cities shown on the map. capture enemy cities (park your armies on them) to steal their income</li>
+        <li>resources pay for units, upkeep, movement, fortresses, doctrines, and artillery</li>
+        <li>you earn income every round from the Victory Point cities you control (capture cities to steal income)</li>
+        <li>a city produces income for whoever's army currently controls it; bigger cities matter most</li>
     </ul>
-    <h2>victory points (cities)</h2>
-    <ul>
-        <li>each colored square is a city and shows its value</li>
-        <li>a city produces income for whoever's army currently controls it</li>
-        <li>bigger cities (Paris, Berlin) matter most</li>
-    </ul>
+
     <h2>supply & encirclement</h2>
-    <li>every unit draws a supply line back to its capital, colored green (well supplied) to red (starving) </li>
-    <li>the further a unit is from its capital, the weaker it fights</li>
-    <li>push too deep and the enemy can cut your supply: a surrounded (encircled) unit rapidly starves. the red rings mark units that are cut off</li>
+    <ul>
+        <li>every unit draws a supply line back to its capital, colored green (well supplied) to red (starving)</li>
+        <li>The further a unit is from its capital, the weaker it fights</li>
+        <li>surrounded (encircled) units rapidly starve — the red rings mark units that are cut off</li>
+        <li>encircle enemy armies to bleed them dry from the rear</li>
+    </ul>
+
     <h2>fortresses</h2>
-    <li>build fortresses in your own territory (behind the frontline) with the Fortifications panel</li>
-    <li>defenders next to a fortress fight harder and wear out attackers who assault it</li>
-    <li>france starts with the Maginot Line already built along the border</li>
+    <ul>
+        <li>build fortresses in your own territory, behind the frontline, with the Fortifications panel</li>
+        <li>defenders next to a fortress fight harder and wear out attackers who assault it</li>
+        <li>france starts with the <b>Maginot Line</b> already built along the border</li>
+    </ul>
+
+    <h2>artillery</h2>
+    <div class="tip">
+        <p style="margin-top: 0"><b>New.</b> Spend resources to bombard enemy positions at the start of the next round.</p>
+        <ul style="margin: 0">
+            <li>pick a preset in the <b>Artillery</b> panel, click <b>Fire Mission</b>, then click a target on the map</li>
+            <li>more powerful barrages cost more and cover a wider area</li>
+            <li>direct hits bleed troops and fatigue the survivors, slowing their advance</li>
+            <li>shell congested frontline clusters — and beware, the enemy has artillery of its own</li>
+        </ul>
+    </div>
+
     <h2>doctrines</h2>
-    <li>the Doctrines panel lets you adopt up to two military doctrines</li>
-    <li>Defense in Depth (stronger on your own soil, cheaper forts), Blitzkrieg (faster & stronger attacks, cheaper movement), Industrial Mobilization (more income), Logistics (supply decays slower)</li>
+    <ul>
+        <li>the Doctrines panel lets you adopt up to two military doctrines</li>
+        <li><b>Defense in Depth</b> (stronger on your own soil, cheaper forts), <b>Blitzkrieg</b> (faster & stronger attacks, cheaper movement), <b>Industrial Mobilization</b> (more income), <b>Logistics</b> (supply decays slower)</li>
+        <li>doctrine costs rise with each adoption — the enemy studies you and adopts doctrines of its own</li>
+    </ul>
+
+    <h2>controls</h2>
+    <ul>
+        <li><kbd>N</kbd> or <kbd>Enter</kbd> — advance round</li>
+        <li><kbd>Esc</kbd> — cancel selection / targeting</li>
+        <li>click a unit on the map, then click the destination to march it</li>
+        <li>in the Your Units panel: Move (click a destination), Merge, Split, Remove / Surrender</li>
+    </ul>
   </body>
 </html>

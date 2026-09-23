@@ -80,8 +80,8 @@ function logCityCaptures() {
 }
 
 function controllerColor(country) {
-  if (country === "france") return [76, 128, 214];
-  if (country === "germany") return [216, 66, 44];
+  if (country === "france") return [58, 95, 158];
+  if (country === "germany") return [148, 62, 54];
   return [236, 182, 46];
 }
 
@@ -92,22 +92,40 @@ function drawVictoryPoints() {
     const controller = controllerFor(c);
     const col = controllerColor(controller);
     const [vx, vy] = vgrid(c.x, c.y);
-    fill(col[0], col[1], col[2]);
-    stroke(255);
-    strokeWeight(1);
-    rect(vx - 8, vy - 8, 16, 16, 3);
+    const captured = controller !== c.belongsTo;
+
+    // soft halo
+    fill(col[0], col[1], col[2], 40);
+    noStroke();
+    circle(vx, vy, 22);
+
+    // city marker
+    fill(col[0], col[1], col[2], 235);
+    stroke(255, 255, 255, 210);
+    strokeWeight(1.5);
+    circle(vx, vy, 13);
+
+    // victory point value
     fill(255);
     noStroke();
-    textSize(8);
-    text(c.vp, vx, vy);
-    fill(0, 0, 0, 190);
     textSize(9);
-    text(c.name.toUpperCase(), vx, vy + 17);
-    if (controller !== c.belongsTo) {
-      stroke(255, 30, 20);
+    textStyle(BOLD);
+    text(c.vp, vx, vy + 0.5);
+
+    // name
+    fill(250, 250, 255);
+    textSize(10);
+    textStyle(BOLD);
+    stroke(0, 0, 0, 150);
+    strokeWeight(2);
+    text(c.name.toUpperCase(), vx, vy + 21);
+
+    // enemy-held ring
+    if (captured) {
+      stroke(255, 40, 25);
       strokeWeight(2);
       noFill();
-      ellipse(vx, vy, 34, 34);
+      circle(vx, vy, 28);
     }
   }
   pop();

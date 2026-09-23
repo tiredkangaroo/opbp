@@ -94,7 +94,7 @@ class Opponent {
     var actionsDone = 0;
     const actionToDo = this.difficulty;
     while (actionsDone < actionToDo) {
-      switch (randomInt(1, 25)) {
+      switch (randomInt(1, 30)) {
         case 1:
         case 2:
           actionsDone += this.moveOpponentIntoOwnTerritory();
@@ -142,9 +142,18 @@ class Opponent {
           // it's like moveTowardsPlayerUnit but moves to opponent unit
           actionsDone += this.moveTowardsOpponentUnitInPlayerTerritory();
           break;
+        case 26:
+        case 27:
+          actionsDone += this.fireArtillery();
+          break;
+        case 28:
+          actionsDone += this.buildFort();
+          break;
+        case 29:
+        case 30:
+          actionsDone += this.reinforceFrontline();
+          break;
         default:
-          // do nothing
-          console.log("opponent doing nothing");
           actionsDone++;
       }
     }
@@ -230,22 +239,26 @@ class Opponent {
       return 0; // don't deploy if we already have 12 units, otherwise it gets really laggy and too crowded
     }
     // between a quarter and a third of current resources except size and speed
-    const size = Math.floor(Math.pow(((this.resources / MAX_COST) * 10000) / randomInt(1, 2), 0.85)) || 100;
-    if (this.size < 6000) {
+    const size = Math.min(12000, Math.floor(Math.pow(((this.resources / MAX_COST) * 10000) / randomInt(1, 2), 0.85)) || 100);
+    if (size < 2500) {
       return 0; // it's a waste and im tired of fighting them
     }
-    const speed = Math.min(Math.pow(Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)), 0.8) || 10, 25);
-    const attack = Math.min(Math.pow(Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)), 0.75) || 1, 15);
+    if (manpowerFor(this.playingas) < size) {
+      return 0; // no able-bodied citizens to raise
+    }
+    const speed = Math.min(Math.pow(Math.floor(((this.resources / MAX_COST) * 20) / randomInt(1, 2)), 0.8) || 10, 20);
+    const attack = Math.min(Math.pow(Math.floor(((this.resources / MAX_COST) * 10) / randomInt(1, 2)), 0.75) || 1, 10);
     const stamina = Math.min(Math.pow(Math.floor(((this.resources / MAX_COST) * 5) / randomInt(3, 4)), 0.67) || 1, 5);
     const [x, y] = randomPointInFeature(this.playingas === "france" ? franceData : germanyData, 1000);
     console.log("deploying at:", x, y, size, speed, attack, stamina);
     const cost = getUnitDeployCost(size, speed, attack, stamina) || 50;
     if (cost > this.resources) {
-      alert("check the console dawg");
+      console.error("check the console dawg", this.resources, cost);
       throw "damn im stupid";
     }
     console.log("current resources", this.resources, "cost", cost);
     this.resources -= cost;
+    addManpower(this.playingas, -size);
     const newUnit = new Unit(
       x,
       y,
@@ -336,6 +349,8 @@ class Opponent {
         // to make germany more cracked, we give then all the resources back from removing a unit, not just a third like we do for the player
         Math.round(getUnitDeployCost(unit.size, unit.speed, unit.attack, unit.stamina)),
       );
+      // disbanded troops go back into the manpower pool
+      addManpower(this.playingas, unit.size);
       console.log("opponent removing unit:", unit);
       units = units.filter((u) => u.name !== unit.name);
       break;
@@ -357,7 +372,11 @@ class Opponent {
     if (c > this.resources) {
       return 0; // can't afford
     }
+    if (manpowerFor(this.playingas) < sze) {
+      return 0; // no able-bodied citizens to raise
+    }
     this.addResources(-c);
+    addManpower(this.playingas, -sze);
     const nU = new Unit(
       capitalCoords[1] + randomInt(-30, 30),
       capitalCoords[2] + randomInt(-30, 30),
@@ -473,6 +492,9 @@ class Opponent {
       [792, 433],
     ];
     if (this.playingas === "germany") {
+      if (manpowerFor(this.playingas) < 6700) {
+        return 0; // no able-bodied citizens to raise
+      }
       const pt = germanPointsNearFrenchCapital[randomInt(0, germanPointsNearFrenchCapital.length - 1)];
       const newUnit = new Unit(
         pt[0],
@@ -488,6 +510,7 @@ class Opponent {
       units.push(newUnit);
       this.unitsEverCreated++;
       this.addResources(-getUnitDeployCost(6700, 14, 5, 5));
+      addManpower(this.playingas, -6700);
       console.log("deployed new unit near french capital for opponent:", newUnit);
 
       // move unit towards the target unit
@@ -509,6 +532,56 @@ class Opponent {
 
     return 1;
   }
+  fireArtillery() {
+    if (this.resources < 360) return 0;
+    const playerUnits = units.filter((u) => u.belongsTo !== this.playingas && u.size > 40);
+    if (playerUnits.length === 0) return 0;
+    const target = playerUnits[randomInt(0, playerUnits.length - 1)];
+    const preset = ARTILLERY_PRESETS[1]; // bombardment
+    if (this.resources - preset.cost < 1200) return 0; // keep a reserve
+    this.resources -= preset.cost;
+    opponentBarrages.push({
+      x: target.x,
+      y: target.y,
+      power: preset.power,
+      radius: preset.radius,
+    });
+    rounds.log(`${countryName(this.playingas)} calls for an artillery barrage.`);
+    return 1;
+  }
+
+  buildFort() {
+    if (this.resources < FORT_COST * 1.2) return 0;
+    if (forts.filter((f) => f.belongsTo === this.playingas).length >= MAX_FORTS) return 0;
+    const [x, y] = randomPointInFeature(
+      this.playingas === "france" ? franceData : germanyData,
+      300,
+    );
+    // must be behind the frontline
+    if (frontlineYs !== null && isInFrontOfFrontline(x, y, this.playingas)) return 0;
+    for (const f of forts) {
+      if (f.belongsTo === this.playingas && Math.hypot(f.x - x, f.y - y) < 40) return 0;
+    }
+    this.resources -= FORT_COST;
+    forts.push(new Fort(x, y, this.playingas));
+    rounds.log(`${countryName(this.playingas)} completes a fortress.`);
+    return 1;
+  }
+
+  reinforceFrontline() {
+    const pool = this.myUnitsNotMoving(false, true).filter((u) => u.size >= 4000);
+    if (pool.length === 0) return 0;
+    const u = pool[randomInt(0, pool.length - 1)];
+    const borderX = getBorderXAtY(u.y);
+    const dir = this.playingas === "france" ? 1 : -1;
+    u.addProposedAction({
+      type: "move",
+      targetX: borderX + dir * 70,
+      targetY: u.y + (Math.random() * 80 - 40),
+    });
+    return 1;
+  }
+
   moveTowardsOpponentCapital() {
     // get all units not moving larger than 6000 and move them to the opposing capital
     const bigUnits = this.myUnitsNotMoving(false, true).filter((u) => u.size >= 6000);

@@ -67,22 +67,23 @@ function purchaseFocus(key) {
   const f = focusList.find((x) => x.key === key);
   if (!f) return;
   if (hasDoctrine(key)) {
-    alert("You have already adopted this doctrine.");
+    toast("You have already adopted this doctrine.");
     return;
   }
   if (playerDoctrines.length >= MAX_DOCTRINES) {
-    alert("You may adopt up to two doctrines total.");
+    toast("You may adopt up to two doctrines total.");
     return;
   }
   const cost = doctrineCost(f);
   if (resources < cost) {
-    alert("Not enough resources to adopt this doctrine.");
+    toast("Not enough resources to adopt this doctrine.");
     return;
   }
   resources -= cost;
   playerDoctrines.push(key);
   rounds.log(`Adopted doctrine: ${f.name}`);
   updateFocusPanelUI();
+  updateFortPanelUI();
 }
 
 function updateFocusPanelUI() {

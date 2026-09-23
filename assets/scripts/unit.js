@@ -56,12 +56,25 @@ class Unit {
   }
 
   draw() {
-    // const [width, height] =
     push();
 
     // draw flag representing unit
     const flagScale = this.getFlagScale();
     const flagDimensions = getFlagDimensions(this.belongsTo, flagScale);
+
+    // soft ground shadow so flags read against the map
+    push();
+    noStroke();
+    fill(0, 0, 0, 70);
+    const shadowW = 14 + Math.sqrt(this.size) * 0.5;
+    ellipse(
+      this.x + flagDimensions.width / 2,
+      this.y + flagDimensions.height * 0.88,
+      shadowW,
+      shadowW * 0.32,
+    );
+    pop();
+
     drawFlag(this.belongsTo, this.x, this.y, flagScale);
 
     // highlight selected unit
@@ -77,21 +90,29 @@ class Unit {
     // if mouse is over unit, show unit info box
     if (mouseInBox(this.x, this.y, flagDimensions.width, flagDimensions.height)) {
       push();
-      fill(0, 0, 0, 200);
-      let box_width = 135;
+      fill(0, 0, 0, 210);
+      let box_width = 150;
       if (this.name.length > 25) {
         box_width += (this.name.length - 25) * 8; // make box wider for long unit names
       }
-      rect(mouseX + 10, mouseY + 10, box_width, 105);
+      const tx = Math.min(mouseX + 10, 1367 - box_width - 12);
+      const ty = Math.min(mouseY + 10, 800 - 128 - 10);
+      rect(tx, ty, box_width, 116);
       fill(255);
       textSize(12);
       textAlign(LEFT, CENTER);
-      text(`${this.name}`, mouseX + 15, mouseY + 25);
-      text(`Size: ${addCommasToNumber(Math.round(this.size))}`, mouseX + 15, mouseY + 40);
-      text(`Speed: ${round(this.speed, 1)}`, mouseX + 15, mouseY + 55);
-      text(`Attack: ${round(this.attack, 1)}`, mouseX + 15, mouseY + 70);
-      text(`Stamina: ${round(this.stamina, 1)}`, mouseX + 15, mouseY + 85);
-      text(`Supply: ${Math.round(getUnitSupply(this) * 100)}%`, mouseX + 15, mouseY + 100);
+      text(`${this.name}`, tx + 5, ty + 14);
+      const supply = Math.round(getUnitSupply(this) * 100);
+      const supplyColor = supply < 40 ? [255, 90, 70] : supply < 70 ? [225, 190, 60] : [120, 220, 120];
+      push();
+      fill(supplyColor[0], supplyColor[1], supplyColor[2]);
+      text(`Supply: ${supply}%`, tx + 5, ty + 96);
+      pop();
+      text(`Size: ${addCommasToNumber(Math.round(this.size))}`, tx + 5, ty + 30);
+      text(`Speed: ${round(this.speed, 1)}`, tx + 5, ty + 45);
+      text(`Attack: ${round(this.attack, 1)}`, tx + 5, ty + 60);
+      text(`Stamina: ${round(this.stamina, 1)}`, tx + 5, ty + 75);
+      text(`Power: ${Math.round(combatPower(this, this, getUnitSupply(this)))}`, tx + 5, ty + 88);
 
       // scroll the Your Units box to the unit info if hovering over the unit
       scrollToUnitInList(this);
@@ -146,7 +167,6 @@ class Unit {
       this.x = this.animTargetX;
       this.y = this.animTargetY;
     }
-    updateUnitsListUI();
     displayRoundCost(); // moved to different location = different upkeep costs
 
     pop();
@@ -330,7 +350,7 @@ function deployUnit() {
   const positionRaw = document.getElementById("deploy-unit-position-display").textContent;
   const positionMatch = positionRaw.match(/\((\d+), (\d+)\)/);
   if (!positionMatch) {
-    alert("Please select a valid position for the unit!");
+    toast("Please select a valid position for the unit!");
     return;
   }
   const x = parseInt(positionMatch[1]);
@@ -338,7 +358,11 @@ function deployUnit() {
 
   const cost = getUnitDeployCost(size, speed, attack, stamina);
   if (cost > resources) {
-    alert("Not enough resources to deploy unit!");
+    toast("Not enough resources to deploy unit!");
+    return;
+  }
+  if (manpowerFor(playingAs) < size) {
+    toast(`Not enough manpower to deploy ${addCommasToNumber(size)} troops! (${addCommasToNumber(manpowerFor(playingAs))} available)`);
     return;
   }
   // calculate upkeep cost with new unit (btw i hate u prettier)
@@ -350,10 +374,11 @@ function deployUnit() {
       ]) >
     resources
   ) {
-    alert("You cannot afford the upkeep cost of this unit along with your existing units!");
+    toast("You cannot afford the upkeep cost of this unit along with your existing units!");
     return;
   }
   resources -= cost;
+  addManpower(playingAs, -size);
 
   units.push(new Unit(x, y, getUnitName(unitsEverDeployed, playingAs), 1, size, speed, attack, stamina, playingAs));
 
@@ -362,11 +387,30 @@ function deployUnit() {
   // update units list in UI
   updateUnitsListUI();
   displayRoundCost();
+  updateDeployManpowerUI();
+}
+
+let unitsListSignature = null;
+let unitsListBuilt = false;
+
+function playerUnitsSignature() {
+  let s = "";
+  for (const u of units) {
+    if (u.belongsTo !== playingAs) continue;
+    s += `${u.name}|${Math.round(u.x)},${Math.round(u.y)}|${Math.round(u.size)}|${u.speed}|${u.attack}|${u.stamina}|${u.proposedActions.length};`;
+  }
+  return s;
 }
 
 function updateUnitsListUI() {
-  console.log("updating units list UI");
+  if (rounds.inProgress) return; // the list is frozen while orders execute
+  const sig = playerUnitsSignature();
+  if (unitsListBuilt && sig === unitsListSignature) return;
+  unitsListSignature = sig;
+  unitsListBuilt = true;
+
   const unitsListDiv = document.getElementById("units-list");
+  if (!unitsListDiv) return;
   unitsListDiv.innerHTML = "";
 
   const unitElements = [];
@@ -385,7 +429,7 @@ function updateUnitsListUI() {
     }
 
     // our units that are in contact with other of our own units
-    var myUnitsInContact = [];
+    const myUnitsInContact = [];
     for (const otherUnit of units) {
       if (otherUnit === unit) continue;
       if (otherUnit.belongsTo !== playingAs) continue;
@@ -394,34 +438,41 @@ function updateUnitsListUI() {
       }
     }
 
-    unitElements.push(`<div class="unit-item">
-      <strong>${unit.name}</strong><br/>
-      <p><b>Location</b>: ${currentLocation}</p>
-      <p><b>Size</b>: ${addCommasToNumber(unit.size)} | <b>Speed</b>: ${Math.round(unit.speed)} | <b>Attack</b>: ${Math.round(unit.attack)} | <b>Stamina</b>: ${Math.round(unit.stamina)}</p>
-      <div>
+    const cls = [unit.isGuardUnit ? "guard" : "", isInEnemyTerritory ? "enemy" : ""]
+      .filter(Boolean)
+      .join(" ");
+
+    unitElements.push(`<div class="unit-item ${cls}">
+      <strong>${unit.name}</strong>
+      <p class="loc">${currentLocation}${isInEnemyTerritory ? " · enemy territory" : ""}</p>
+      <p>
+        <span class="loc">Size:</span> <span class="stat">${addCommasToNumber(unit.size)}</span> ·
+        <span class="loc">Spd:</span> <span class="stat">${round(unit.speed, 1)}</span> ·
+        <span class="loc">Atk:</span> <span class="stat">${round(unit.attack, 1)}</span> ·
+        <span class="loc">Sta:</span> <span class="stat">${round(unit.stamina, 1)}</span>
+      </p>
       ${unit.proposedActions
         .map((action, actionIdx) => {
           if (action.type === "move") {
-            return `<p><i>Proposed Action</i>: Move to (${action.targetX}, ${action.targetY})<button style="margin-left: 4px;" onclick="units[${index}].proposedActions.splice(${actionIdx}, 1); updateUnitsListUI(); displayRoundCost();">Cancel</button></p>`;
-          } else {
-            // shouldn't ever happen unless im dumb
-            return `<p><i>Proposed Action</i>: Unknown action</p>`;
+            return `<p class="proposed">→ Move to (${action.targetX}, ${action.targetY})<button onclick="cancelProposedMove(${index}, ${actionIdx})">Cancel</button></p>`;
           }
+          return `<p class="proposed"><i>Unknown action</i></p>`;
         })
         .join("")}
-      <div style="margin-top: 4px;">
+      <div class="unit-actions">
         <button id="move-unit-button-${index}">Move</button>
         <button id="remove-unit-button-${index}">${isInEnemyTerritory ? "Surrender" : "Remove"}</button>
-        ${myUnitsInContact.length > 0 ? `<button id="merge-unit-button-${index}">Merge with Nearby Units</button>` : ""}
-        <button id="split-unit-button-${index}">Split unit</button>
+        ${myUnitsInContact.length > 0 ? `<button id="merge-unit-button-${index}">Merge</button>` : ""}
+        <button id="split-unit-button-${index}">Split</button>
       </div>
-    </div></div>`);
+    </div>`);
   });
 
   // guard units go to the bottom
   unitElements.sort((a, b) => {
     const unitA = units.find((u) => a.includes(u.name));
     const unitB = units.find((u) => b.includes(u.name));
+    if (!unitA || !unitB) return 0;
     if (unitA.isGuardUnit && !unitB.isGuardUnit) {
       return 1;
     } else if (!unitA.isGuardUnit && unitB.isGuardUnit) {
@@ -430,11 +481,7 @@ function updateUnitsListUI() {
       return 0;
     }
   });
-  if (unitElements.length === 0) {
-    document.getElementById("units-panel").hidden = true;
-  } else {
-    document.getElementById("units-panel").hidden = false;
-  }
+  document.getElementById("units-panel").hidden = unitElements.length === 0;
   unitsListDiv.innerHTML = unitElements.join("");
 
   for (let i = 0; i < units.length; i++) {
@@ -443,60 +490,60 @@ function updateUnitsListUI() {
 
     // move unit button
     document.getElementById(`move-unit-button-${i}`).onclick = () => {
+      if (rounds.inProgress) return;
       // select new position
       mouseClickHandler = null;
-      setTimeout(() => {
-        document.getElementById(`move-unit-button-${i}`).textContent = "(click on map to move unit)";
-        mouseClickHandler = () => {
-          if (!pointInMap(mouseX, mouseY)) {
-            alert("Please select a position on the map!");
-            return;
-          }
-          const mousePosition = vgrid(mouseX, mouseY);
-          mousePosition[0] = Math.round(mousePosition[0]);
-          mousePosition[1] = Math.round(mousePosition[1]);
-          document.getElementById(`move-unit-button-${i}`).textContent = `Move`;
+      document.getElementById(`move-unit-button-${i}`).textContent = "(click map →)";
+      mouseClickHandler = () => {
+        if (!pointInMap(mouseX, mouseY)) {
+          toast("Please select a position on the map!");
+          return;
+        }
+        const mousePosition = vgrid(mouseX, mouseY);
+        mousePosition[0] = Math.round(mousePosition[0]);
+        mousePosition[1] = Math.round(mousePosition[1]);
+        document.getElementById(`move-unit-button-${i}`).textContent = "Move";
 
-          // move unit to new position
+        // if a unit has a move action, remove that action
+        u.proposedActions = u.proposedActions.filter((action) => action.type !== "move");
 
-          u.proposedActions = u.proposedActions.filter((action) => action.type !== "move"); // if a unit has a move action, remove that action
-
-          u.addProposedAction({
-            type: "move",
-            targetX: mousePosition[0],
-            targetY: mousePosition[1],
-          });
-          mouseClickHandler = null;
-        };
-      }, 250);
+        u.addProposedAction({
+          type: "move",
+          targetX: mousePosition[0],
+          targetY: mousePosition[1],
+        });
+        mouseClickHandler = null;
+      };
     };
 
     // remove unit button
     const removeButton = document.getElementById(`remove-unit-button-${i}`);
     if (removeButton) {
       removeButton.onclick = () => {
+        if (rounds.inProgress) return;
         const unitForRemoval = units[i];
-        // remove unit from units array
         units.splice(i, 1);
         const deployCost = getUnitDeployCost(u.size, u.speed, u.attack, u.stamina);
         if (inWhatCountry(unitForRemoval.x, unitForRemoval.y) === unitForRemoval.belongsTo) {
-          // return some resources if removing (not if surrendering in enemy territory)
-          addResources(deployCost / 3); // refund 1/3rd of deploy cost (using units in battle will also wear down speed, attack, stamina and size so you'll get even less back)
-          // update UI
+          // refund 1/3rd of deploy cost
+          addResources(deployCost / 3);
+          // disbanded troops go back into the manpower pool
+          addManpower(unitForRemoval.belongsTo, unitForRemoval.size);
         } else {
           // surrendering unit (give resources to opponent)
-          opponent.addResources(deployCost / 6); // 1/6th given to opponent because unit is in enemy territory
+          opponent.addResources(deployCost / 6);
         }
-
         updateUnitsListUI();
         displayRoundCost();
+        updateDeployManpowerUI();
       };
     }
 
     const mergeButton = document.getElementById(`merge-unit-button-${i}`);
     if (mergeButton) {
       mergeButton.onclick = () => {
-        // merge with nearby units, takes average of stats and sums size
+        if (rounds.inProgress) return;
+        // merge with nearby units: takes average of stats and sums size
         let totalSize = u.size;
         let totalSpeed = u.speed;
         let totalAttack = u.attack;
@@ -507,24 +554,18 @@ function updateUnitsListUI() {
           if (otherUnit === u) continue;
           if (otherUnit.belongsTo !== playingAs) continue;
           if (areTwoUnitsInContact(u, otherUnit)) {
-            console.log("Merging", otherUnit.name, "into", u.name, totalAttack, otherUnit.attack);
             totalSize += otherUnit.size;
             totalSpeed += otherUnit.speed;
             totalAttack += otherUnit.attack;
             totalStamina += otherUnit.stamina;
             unitsMerged += 1;
-
-            // remove other unit
             units = units.filter((unit) => unit !== otherUnit);
           }
         }
-
-        // update stats
         u.size = totalSize;
         u.speed = Math.round(totalSpeed / unitsMerged);
         u.attack = Math.round(totalAttack / unitsMerged);
         u.stamina = Math.round(totalStamina / unitsMerged);
-
         updateUnitsListUI();
         displayRoundCost();
       };
@@ -532,8 +573,9 @@ function updateUnitsListUI() {
 
     const splitButton = document.getElementById(`split-unit-button-${i}`);
     splitButton.onclick = () => {
+      if (rounds.inProgress) return;
       if (u.size < 200) {
-        alert("Unit size too small to split!");
+        toast("Unit size too small to split!");
         return;
       }
       const otherMultiplier = 0.4 + Math.random() * 0.2; // between 40% and 60%
@@ -558,6 +600,15 @@ function updateUnitsListUI() {
       displayRoundCost();
     };
   }
+}
+
+function cancelProposedMove(unitIndex, actionIdx) {
+  if (rounds.inProgress) return;
+  const u = units[unitIndex];
+  if (!u) return;
+  u.proposedActions.splice(actionIdx, 1);
+  updateUnitsListUI();
+  displayRoundCost();
 }
 
 function getUnitName(currentNumberOfUnits, unitCountry) {
@@ -646,29 +697,21 @@ function getDeployUnitSpecs() {
 
 function selectDeployUnitPosition() {
   mouseClickHandler = null;
-  setTimeout(() => {
-    document.getElementById("deploy-unit-position-display").textContent = "(click on map)";
-    mouseClickHandler = () => {
-      if (
-        // !pointInCountry(
-        //   mouseX,
-        //   mouseY,
-        //   playingAs == "france" ? franceData : germanyData,
-        // )
-        isInFrontOfFrontline(mouseX, mouseY, playingAs) ||
-        !pointInMap(mouseX, mouseY)
-      ) {
-        alert(`Please select a position behind the frontline and within the map bounds!`);
-        return;
-      }
-      const mousePosition = vgrid(mouseX, mouseY);
-      mousePosition[0] = Math.round(mousePosition[0]);
-      mousePosition[1] = Math.round(mousePosition[1]);
-      document.getElementById("deploy-unit-position-display").textContent =
-        `(${mousePosition[0]}, ${mousePosition[1]})`;
-      mouseClickHandler = null;
-    };
-  }, 250);
+  document.getElementById("deploy-unit-position-display").textContent = "(click on map)";
+  mouseClickHandler = () => {
+    const pos = vgrid(mouseX, mouseY);
+    const px = Math.round(pos[0]);
+    const py = Math.round(pos[1]);
+    if (
+      !pointInMap(mouseX, mouseY) ||
+      isInFrontOfFrontline(px, py, playingAs)
+    ) {
+      toast("Please select a position behind the frontline and within the map bounds!");
+      return;
+    }
+    document.getElementById("deploy-unit-position-display").textContent = `(${px}, ${py})`;
+    mouseClickHandler = null;
+  };
 }
 
 function drawArrow(base, vec, myColor) {
@@ -768,9 +811,6 @@ function getOccupationPolygonForUnit(unit) {
 
 // draws occupatied areas by units
 function drawOccupation() {
-  if (rounds.inProgress) {
-    return;
-  }
   drawFrontline();
 }
 
@@ -785,7 +825,13 @@ function turfPolyFromPoints(polygon) {
 function pointInUnitBox(x, y, unit) {
   const flagScale = unit.getFlagScale();
   const flagDimensions = getFlagDimensions(unit.belongsTo, flagScale);
-  return pointInBox(x, y, unit.x, unit.y, flagDimensions.width, flagDimensions.height);
+  const pad = 8; // forgiving hitbox around the flag
+  return pointInBox(
+    x, y,
+    unit.x - pad, unit.y - pad,
+    flagDimensions.width + pad * 2,
+    flagDimensions.height + pad * 2,
+  );
 }
 
 function pointInPolygon(px, py, poly) {
