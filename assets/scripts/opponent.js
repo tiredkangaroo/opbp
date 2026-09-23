@@ -53,6 +53,8 @@ class Opponent {
       }
     }
 
+    this.maybeAdoptDoctrine();
+
     // check if any of player's unit is within a 120 pixel radius of the opponents's capital: panic
     const unitsNearCapital = units.filter(
       (unit) =>
@@ -155,6 +157,21 @@ class Opponent {
       return;
     }
     this.resources = Math.max(Math.round(this.resources + amount), 0);
+  }
+
+  maybeAdoptDoctrine() {
+    if (opponentDoctrines.length >= MAX_DOCTRINES) return;
+    const options = focusList.filter((f) => !opponentDoctrines.includes(f.key));
+    if (options.length === 0) return;
+    if (Math.random() > 0.5) return;
+    const count = opponentDoctrines.length;
+    const affordable = options.filter((f) => this.resources - f.cost * Math.pow(1.35, count) > 1500);
+    if (affordable.length === 0) return;
+    const choice = affordable[this.difficulty % affordable.length] || affordable[randomInt(0, affordable.length - 1)];
+    const cost = doctrineCost(choice);
+    this.resources -= cost;
+    opponentDoctrines.push(choice.key);
+    rounds.log(`${countryName(this.playingas)} adopted doctrine: ${choice.name}`);
   }
 
   moveOpponentIntoOwnTerritory() {

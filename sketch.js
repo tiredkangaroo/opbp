@@ -55,6 +55,8 @@ let mouseObj = null;
 
 let maximumFrameRate = 50;
 
+let gameSystemsInitialized = false;
+
 async function preload() {
   preloadFlags();
   franceData = await getCountry("france");
@@ -66,6 +68,9 @@ async function preload() {
 
 function setup() {
   createCanvas(1367, 800);
+  setupVictoryPoints();
+  updateFocusPanelUI();
+  updateFortPanelUI();
   // capital protection units that start in a hexagon around the capital
   for (const country in capitals) {
     const [capitalName, capitalX, capitalY] = capitals[country];
@@ -94,12 +99,19 @@ function draw() {
     // guarantee map data is loaded
     return;
   }
+  if (!gameSystemsInitialized) {
+    gameSystemsInitialized = true;
+    setupMaginotLine();
+  }
   drawCountries();
   drawCountryNames();
   drawOccupation();
 
+  drawForts();
   units.forEach((unit) => unit.draw());
   drawCapitals();
+  drawVictoryPoints();
+  drawSupplyLines();
   drawResources();
   rounds.watchRound();
   mouseObj.draw();
@@ -113,6 +125,9 @@ function drawEndScreen() {
   document.getElementById("units-panel").hidden = true;
   document.getElementById("rounds-panel").hidden = true;
   document.getElementById("deploy-unit-panel").hidden = true;
+  document.getElementById("focus-panel").hidden = true;
+  document.getElementById("fort-panel").hidden = true;
+  document.getElementById("battle-log").hidden = true;
 
   push();
   // create large box in center
@@ -256,7 +271,6 @@ function drawCapitals() {
   if (isInFrontOfFrontline(parisX, parisY, "france")) {
     // draw a light red circle with dark borders and a big red ! in the middle of the circle
     // to indiciate that the capital is somewhat under foreign occupation
-    console.log("drawing occupation circle for france");
     push();
     fill("#fab1aa");
     stroke(255, 0, 0);
@@ -276,7 +290,6 @@ function drawCapitals() {
   ellipse(...vgrid(berlinX, berlinY), 8, 8);
   text(berlin, ...vgrid(berlinX, berlinY - 15));
   if (isInFrontOfFrontline(berlinX, berlinY, "germany")) {
-    console.log("drawing occupation circle for germany");
     push();
     fill("#fab1aa");
     stroke(255, 0, 0);

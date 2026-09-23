@@ -14,6 +14,10 @@
     <script src="assets/scripts/unit.js"></script>
     <script src="assets/scripts/resources.js"></script>
     <script src="assets/scripts/rounds.js"></script>
+    <script src="assets/scripts/supply.js"></script>
+    <script src="assets/scripts/focus.js"></script>
+    <script src="assets/scripts/victory.js"></script>
+    <script src="assets/scripts/fort.js"></script>
     <script src="https://unpkg.com/polygon-clipping@0.15.7/dist/polygon-clipping.umd.js"></script>
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
     <link rel="stylesheet" href="assets/stylesheets/styles.css" />
@@ -131,6 +135,26 @@
         <div id="units-list">
           <!-- <div class="unit-item"> -->
         </div>
+      </div>
+
+      <div id="fort-panel">
+        <h3>Fortifications</h3>
+        <p>Fortress cost: <span id="fort-cost-display">900</span> resources</p>
+        <p id="fort-position-display" class="pos-display">(not selected)</p>
+        <div class="level-row">
+          <button onclick="selectFortPosition()">Select Position</button>
+          <button onclick="buildFort()">Build Fortress</button>
+        </div>
+      </div>
+
+      <div id="focus-panel">
+        <h3>Doctrines</h3>
+        <div id="focus-list"></div>
+      </div>
+
+      <div id="battle-log">
+        <h3>Battle Report</h3>
+        <div id="battle-log-list"></div>
       </div>
     </main>
   </body>

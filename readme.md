@@ -73,7 +73,15 @@
     <ul>
         <li>resources are shown in the bottom left corner</li>
         <li>resources are used to deploy units, maintain units (upkeep), and move units</li>
-        <li>you gain resources over time, but every round you lose some resources (see the Rounds window)</li>
+        <li>every round you earn income from the Victory Point cities you control (capture cities to steal income)</li>
+        <li>resources also pay for fortresses and doctrines (see below)</li>
+    </ul>
+    <h2>victory points, supply, fortresses & doctrines</h2>
+    <ul>
+        <li>cities on the map generate income for whoever's army controls them</li>
+        <li>units draw supply lines to their capital; deep pushes weaken and encirclement starves units (red ring)</li>
+        <li>build fortresses behind your frontline to anchor defenses; france starts with the Maginot Line</li>
+        <li>the Doctrines panel lets you adopt up to two doctrines (Defense in Depth, Blitzkrieg, Industrial Mobilization, Logistics)</li>
     </ul>
   </body>
 </html>

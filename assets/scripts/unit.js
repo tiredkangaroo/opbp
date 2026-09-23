@@ -34,6 +34,11 @@ class Unit {
 
     this.cachedOccupationPolygon = null;
     this.cachedOccupationFromRound = -1;
+
+    this.supply = 1;
+    this.supplyMemoRound = -1;
+    this.supplyMemo = 1;
+    this.wasCutOff = false;
   }
 
   getFlagScale() {
@@ -67,7 +72,7 @@ class Unit {
       if (this.name.length > 25) {
         box_width += (this.name.length - 25) * 8; // make box wider for long unit names
       }
-      rect(mouseX + 10, mouseY + 10, box_width, 90);
+      rect(mouseX + 10, mouseY + 10, box_width, 105);
       fill(255);
       textSize(12);
       textAlign(LEFT, CENTER);
@@ -76,6 +81,7 @@ class Unit {
       text(`Speed: ${round(this.speed, 1)}`, mouseX + 15, mouseY + 55);
       text(`Attack: ${round(this.attack, 1)}`, mouseX + 15, mouseY + 70);
       text(`Stamina: ${round(this.stamina, 1)}`, mouseX + 15, mouseY + 85);
+      text(`Supply: ${Math.round(getUnitSupply(this) * 100)}%`, mouseX + 15, mouseY + 100);
 
       // scroll the Your Units box to the unit info if hovering over the unit
       if (this.belongsTo === playingAs) {
@@ -172,6 +178,13 @@ class Unit {
 
   handleAdvanceRound() {
     // level up!!
+    this.supply = getUnitSupply(this);
+    this.isCutOff = unitIsCutOff(this);
+    if (this.isCutOff && !this.wasCutOff) {
+      rounds.log(`${this.shortName()} is encircled and cut off from supply!`);
+    }
+    this.wasCutOff = this.isCutOff;
+
     const loc = inWhatCountry(this.x, this.y);
     if (loc === this.belongsTo) {
       if (this.proposedActions.length === 0) {
@@ -188,9 +201,16 @@ class Unit {
       this.stamina = Math.max(1, this.stamina - 0.5);
       this.attack = Math.max(1, this.attack - 0.3);
       this.speed = Math.max(10, this.speed - 0.3);
+      const supplyDeficit = Math.max(0, 0.5 - this.supply);
       this.size = Math.round(
-        this.size * (0.9 + Math.min(0.02 * this.stamina, 0.09)), // 1 stamina = lose 8% of troops, 5 stamina = lose 1% of troops
+        this.size * (0.9 + Math.min(0.02 * this.stamina, 0.09) - supplyDeficit * 0.3),
       );
+      if (enemyUnitOnFort(this)) {
+        // assaulting an enemy fortress wears a unit down even faster
+        this.size = Math.round(this.size * 0.965);
+        this.stamina = Math.max(1, this.stamina - 0.4);
+        this.speed = Math.max(10, this.speed - 0.4);
+      }
       if (this.size < 100) {
         this.destroy();
         return;
@@ -299,7 +319,7 @@ class Unit {
   }
 
   calculateMaxRadius() {
-    return Math.min(this.speed, 25) * 2.42 * Math.min((this.size - 100) / (30000 - 100), 1); // ocupation radius scales with speed and size
+    return Math.min(Math.min(this.speed, 25) * 2.42 * Math.min((this.size - 100) / (30000 - 100), 1), 95); // ocupation radius scales with speed and size
   }
 }
 
@@ -591,8 +611,8 @@ function calculateDeployUnitCost() {
   const positionMatch = positionRaw.match(/\((\d+), (\d+)\)/);
   let distanceFromCapital = 0;
   if (positionMatch) {
-    x = parseInt(positionMatch[1]);
-    y = parseInt(positionMatch[2]);
+    let x = parseInt(positionMatch[1]);
+    let y = parseInt(positionMatch[2]);
     distanceFromCapital = Math.hypot(x - capitals[playingAs][1], y - capitals[playingAs][2]);
   }
   console.log("distance from capital:", distanceFromCapital);

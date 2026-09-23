@@ -20,6 +20,14 @@ class Rounds {
       op: 0,
     };
     this.capitalThreshold = 10; // 10 rounds of control of capital to win
+
+    this.battleLog = [];
+  }
+
+  log(message) {
+    this.battleLog.push({ round: this.roundNumber, message: message });
+    if (this.battleLog.length > 60) this.battleLog.shift();
+    renderBattleLog();
   }
 
   advanceRound() {
@@ -58,6 +66,7 @@ class Rounds {
     }
     this.roundNumber += 1;
     document.getElementById("current-round-display").innerText = this.roundNumber;
+    this.log(`--- Round ${this.roundNumber} ---`);
     this.watchRound();
     updateUnitsListUI();
 
@@ -98,17 +107,17 @@ class Rounds {
       playingState = "won-capital";
       units = [];
     }
-    // const playingAsCasualties = playingAs === "france" ? french_casualties : german_casualties;
-    // const opponentCasualties = playingAs === "france" ? german_casualties : french_casualties;
-    // if (playingAsCasualties > 1_000_000 && opponentCasualties < playingAsCasualties / 2) {
-    //   // if u have more than a mil casualties and opponent has less than half as many casualties as u, u lose
-    //   playingState = "lost-casualties";
-    //   units = [];
-    // } else if (opponentCasualties > 1_000_000 && playingAsCasualties < opponentCasualties / 2) {
-    //   // vice versa
-    //   playingState = "won-casualties";
-    //   units = [];
-    // }
+    const playingAsCasualties = playingAs === "france" ? french_casualties : german_casualties;
+    const opponentCasualties = playingAs === "france" ? german_casualties : french_casualties;
+    if (playingAsCasualties > 400000 && opponentCasualties < playingAsCasualties / 2) {
+      // if u have more than 400k casualties and opponent has less than half as many casualties as u, u lose
+      playingState = "lost-casualties";
+      units = [];
+    } else if (opponentCasualties > 400000 && playingAsCasualties < opponentCasualties / 2) {
+      // vice versa
+      playingState = "won-casualties";
+      units = [];
+    }
   }
 
   wgAdd() {
@@ -239,13 +248,10 @@ class Conflict {
     }
 
     // this should be good? or horribly unbalanced, who even knows atp
-    let myAttackPower =
-      (this.myUnit.size / 50) ** 0.9 * this.myUnit.attack * (1 + this.myUnit.stamina / 10) +
-      Math.random() * this.myUnit.size;
-
-    let enemyAttackPower =
-      (this.enemyUnit.size / 50) ** 0.9 * this.enemyUnit.attack * (1 + this.enemyUnit.stamina / 10) +
-      Math.random() * this.enemyUnit.size;
+    const mySupply = getUnitSupply(this.myUnit);
+    const enemySupply = getUnitSupply(this.enemyUnit);
+    let myAttackPower = combatPower(this.myUnit, this.enemyUnit, mySupply);
+    let enemyAttackPower = combatPower(this.enemyUnit, this.myUnit, enemySupply);
 
     const otherConflictInvolvement = unitNamesInHowManyConflicts(allConflicts, [this.myUnit.name, this.enemyUnit.name]);
     if (otherConflictInvolvement[this.myUnit.name]) {
@@ -268,13 +274,11 @@ class Conflict {
       );
     }
 
-    const startingEnemyUnitSize = this.enemyUnit.size;
-    this.enemyUnit.size = Math.round(this.enemyUnit.size - (myAttackPower || 1) / 10); // the 10 is arbitray
-    const startingMyUnitSize = this.myUnit.size;
-    this.myUnit.size = Math.round(this.myUnit.size - (enemyAttackPower || 1) / 10);
+    const enemyLoss = Math.min(Math.round((myAttackPower || 1) / 11), this.enemyUnit.size);
+    const myLoss = Math.min(Math.round((enemyAttackPower || 1) / 11), this.myUnit.size);
+    this.enemyUnit.size = Math.round(this.enemyUnit.size - enemyLoss);
+    this.myUnit.size = Math.round(this.myUnit.size - myLoss);
 
-    const myLoss = Math.min(startingMyUnitSize - this.myUnit.size, startingMyUnitSize);
-    const enemyLoss = Math.min(startingEnemyUnitSize - this.enemyUnit.size, startingEnemyUnitSize);
     this.myCasualties += myLoss;
     this.enemyCasualties += enemyLoss;
     if (playingAs === "france") {
@@ -285,7 +289,13 @@ class Conflict {
       french_casualties += enemyLoss;
     }
 
+    if (rounds.roundNumber > (this.lastLoggedRound || 0)) {
+      this.lastLoggedRound = rounds.roundNumber;
+      rounds.log(`Battle: ${this.myUnit.shortName()} vs ${this.enemyUnit.shortName()}`);
+    }
+
     // include stamina hits (as a function of % of size lost)
+    const startingMyUnitSize = this.myUnit.size + myLoss;
     this.myUnit.stamina = Math.round(
       Math.max(
         // stamina ranges 1-5
@@ -299,10 +309,12 @@ class Conflict {
     // check if any unit has been defeated
     if (this.myUnit.size <= 10) {
       this.myUnit.destroy();
+      rounds.log(`${this.enemyUnit.shortName()} destroyed ${this.myUnit.shortName()}`);
       console.log(this.myUnit.name, " has been defeated!");
       return true; // conflict resolved
     } else if (this.enemyUnit.size <= 10) {
       this.enemyUnit.destroy();
+      rounds.log(`${this.myUnit.shortName()} destroyed ${this.enemyUnit.shortName()}`);
       console.log(this.enemyUnit.name, " has been defeated!");
       return true; // conflict resolved
     }
@@ -330,6 +342,31 @@ function round(num, precision) {
   return Math.round(num * pow) / pow;
 }
 
+function combatPower(attacker, defender, supplyVal) {
+  let power = Math.pow(attacker.size / 50, 0.9) * attacker.attack * (1 + attacker.stamina / 10);
+  power *= supplyCombatMultiplier(attacker);
+  const attackerHome = inWhatCountry(attacker.x, attacker.y) === attacker.belongsTo;
+  const defenderHome = inWhatCountry(defender.x, defender.y) === defender.belongsTo;
+  if (defenderHome && !attackerHome) power *= 0.82;
+  if (!defenderHome && attackerHome) power *= 1.18;
+  if (unitNearFriendlyFort(attacker)) power *= 1.2;
+  if (unitNearFriendlyFort(defender)) power *= 0.7;
+  power *= offenseMultiplierFor(attacker.belongsTo);
+  if (defenderHome) power *= defenseMultiplierFor(attacker.belongsTo);
+  power *= 0.92 + Math.random() * 0.16;
+  return power;
+}
+
+function renderBattleLog() {
+  const el = document.getElementById("battle-log-list");
+  if (!el) return;
+  el.innerHTML = rounds.battleLog
+    .map((e) => `<p><span class="log-round">R${e.round}</span> ${e.message}</p>`)
+    .slice(-40)
+    .join("");
+  el.scrollTop = el.scrollHeight;
+}
+
 function calculateRoundCost(country) {
   let totalCost = 0;
 
@@ -347,7 +384,7 @@ function calculateRoundCost(country) {
 function calculateMovementCost(unit, unitMovement) {
   const sizeScale = Math.sqrt(unit.size / 100);
   const movementFactor = (unitMovement || 0) / 100;
-  const movementCost = Math.pow(sizeScale, 1.8) * Math.pow(movementFactor, 2.2) * 1.4;
+  const movementCost = Math.pow(sizeScale, 1.8) * Math.pow(movementFactor, 2.2) * 1.4 * movementCostMultiplierFor(unit);
   return movementCost;
 }
 
